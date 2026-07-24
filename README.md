@@ -33,7 +33,7 @@ Sistem backend Gizilens menggunakan pendekatan RESTful API dengan alur kerja uta
 Berikut adalah struktur direktori penting di dalam backend ini:
 
 ```text
-gizilens-backend/
+sinutri-backend/
 ├── app/
 │   ├── Http/
 │   │   └── Controllers/API/    # Berisi semua logika API endpoint (AuthController, FoodLogController, dll)
@@ -189,7 +189,7 @@ gizilens-backend/
 Untuk menguji API backend Gizilens, Anda dapat menggunakan alat seperti **Postman**, **Insomnia**, atau ekstensi VS Code seperti **Thunder Client**.
 
 ### Persiapan Server Lokal
-1. Pastikan Anda berada di dalam folder `gizilens-backend`.
+1. Pastikan Anda berada di dalam folder `sinutri-backend`.
 2. Jalankan server lokal Laravel dengan command:
    ```bash
    php artisan serve
