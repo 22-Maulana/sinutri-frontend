@@ -33,13 +33,18 @@ class User extends Authenticatable
         ];
     }
 
-    public function motherProfile()
+    public function userProfile()
     {
-        return $this->hasOne(MotherProfile::class);
+        return $this->hasOne(UserProfile::class);
     }
 
-    public function childrenProfiles()
+    public function foodLogs()
     {
-        return $this->hasMany(ChildProfile::class);
+        return $this->hasMany(FoodLog::class);
+    }
+
+    public function mealPlans()
+    {
+        return $this->hasMany(MealPlan::class);
     }
 }

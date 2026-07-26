@@ -6,11 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\FoodLog;
+use App\Models\UserProfile;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-
-use App\Models\MotherProfile;
-use App\Models\ChildProfile;
 
 class ScanController extends Controller
 {
@@ -19,154 +17,107 @@ class ScanController extends Controller
         set_time_limit(180);
 
         $request->validate([
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-            'description' => 'nullable|string|max:1000',
-            'target_type' => 'required|in:MOTHER,CHILD',
-            'target_id' => 'required|uuid',
-            'notes' => 'nullable|string'
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'notes' => 'nullable|string|max:1000'
         ]);
 
-        $hasImage = $request->hasFile('image');
-        $hasDescription = $request->filled('description');
+        $user = $request->user();
+        $profile = $user->userProfile;
 
-        if (!$hasImage && !$hasDescription) {
-            return response()->json(['error' => 'Harus menyertakan foto atau deskripsi makanan.'], 422);
+        if (!$profile) {
+            return response()->json(['error' => 'Harap lengkapi profil kesehatan terlebih dahulu.'], 422);
         }
 
-        $base64Image = null;
-        $mimeType = null;
-        if ($hasImage) {
-            $imagePath = $request->file('image')->getPathname();
-            $mimeType = $request->file('image')->getMimeType();
-            $base64Image = base64_encode(file_get_contents($imagePath));
-        }
+        $imagePath = $request->file('image')->getPathname();
+        $mimeType = $request->file('image')->getMimeType();
+        $base64Image = base64_encode(file_get_contents($imagePath));
 
         $geminiKey = env('GEMINI_API_KEY');
         $pineconeKey = env('PINECONE_API_KEY');
         $pineconeHost = rtrim(env('PINECONE_HOST'), '/');
 
-        $profileInfo = "";
-        $targetName = "";
-        $allergies = [];
-        if ($request->target_type === 'MOTHER') {
-            $profile = MotherProfile::where('id', $request->target_id)->first();
-            if ($profile) {
-                $targetName = $profile->full_name;
-                $profileInfo = "Subjek: Ibu (Status: {$profile->status}). ";
-                $allergies = $profile->allergies ?? [];
-                if (!empty($allergies)) {
-                    $profileInfo .= "Alergi: " . implode(', ', $allergies) . ". ";
-                }
-            }
-        } else {
-            $profile = ChildProfile::where('id', $request->target_id)->first();
-            if ($profile) {
-                $targetName = $profile->name;
-                $age = Carbon::parse($profile->birth_date)->diffInMonths(Carbon::now());
-                $profileInfo = "Subjek: Anak (Usia: {$age} bulan). ";
-                $allergies = $profile->allergies ?? [];
-                if (!empty($allergies)) {
-                    $profileInfo .= "Alergi: " . implode(', ', $allergies) . ". ";
-                }
-            }
+        $userNotes = $request->input('notes', '');
+
+        $diabetesStatusMap = [
+            'dm_type_1' => 'Diabetes Mellitus Tipe 1',
+            'dm_type_2' => 'Diabetes Mellitus Tipe 2',
+            'prediabetes' => 'Prediabetes',
+            'not_diagnosed' => 'Belum Terdiagnosis DM'
+        ];
+
+        $profileInfo = "Profil Pengguna: {$profile->name}, Usia {$profile->age} tahun, ";
+        $profileInfo .= "Status Diabetes: {$diabetesStatusMap[$profile->diabetes_status]}, ";
+        $profileInfo .= "Riwayat Keluarga DM: " . ($profile->family_diabetes_history ? 'Ya' : 'Tidak') . ", ";
+        $profileInfo .= "BMI: {$profile->bmi}. ";
+
+        $allergies = $profile->food_allergies ?? [];
+        if (!empty($allergies)) {
+            $profileInfo .= "Alergi: " . implode(', ', $allergies) . ". ";
         }
 
-        $userNotes = $request->input('notes', '');
-        $description = $request->input('description', '');
+        $extractionPrompt = "Identifikasi makanan dalam gambar ini. Gabungkan dengan catatan pengguna: \"{$userNotes}\".
+        Return ONLY a JSON object with 'food_name' (detected food name) and 'ingredients' (array of ingredient strings).
+        Example: {\"food_name\": \"Nasi Goreng\", \"ingredients\": [\"Nasi Putih\", \"Telur\", \"Minyak Goreng\", \"Bawang Merah\"]}";
 
-        // ==========================================================
-        // Tahap 1: Ekstraksi Komposisi Bahan Makanan
-        // ==========================================================
-        if ($hasImage) {
-            $extractionPrompt = "Identify all ingredients/components in this food image. Combine them with the user's additional notes: \"{$userNotes}\".
-            Return ONLY a JSON array of ingredient strings, with no additional formatting or code blocks.
-            Example response: [\"Nasi Putih\", \"Ayam Goreng\", \"Minyak Goreng\", \"Wortel\"]";
-
-            $visionResponse = Http::timeout(60)->withHeaders([
-                'Content-Type' => 'application/json'
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
-                "contents" => [
-                    [
-                        "parts" => [
-                            ["text" => $extractionPrompt],
-                            [
-                                "inlineData" => [
-                                    "mimeType" => $mimeType,
-                                    "data" => $base64Image
-                                ]
+        $visionResponse = Http::timeout(60)->withHeaders([
+            'Content-Type' => 'application/json'
+        ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
+            "contents" => [
+                [
+                    "parts" => [
+                        ["text" => $extractionPrompt],
+                        [
+                            "inlineData" => [
+                                "mimeType" => $mimeType,
+                                "data" => $base64Image
                             ]
                         ]
                     ]
-                ],
-                "generationConfig" => [
-                    "responseMimeType" => "application/json"
                 ]
-            ]);
+            ],
+            "generationConfig" => [
+                "responseMimeType" => "application/json"
+            ]
+        ]);
 
-            if (!$visionResponse->successful()) {
-                Log::error("Gemini Vision Error: " . $visionResponse->body());
-                return response()->json(['error' => 'Gagal mendeteksi gambar dengan AI.'], 500);
-            }
-
-            $visionText = $visionResponse->json('candidates.0.content.parts.0.text');
-            $ingredients = json_decode(trim($visionText), true);
-        } else {
-            $textPrompt = "From the following food description, extract all individual ingredients/components. Description: \"{$description}\". Additional notes: \"{$userNotes}\".
-            Return ONLY a JSON array of ingredient strings.
-            Example response: [\"Nasi Putih\", \"Ayam Goreng\", \"Sambal\"]";
-
-            $textResponse = Http::timeout(60)->withHeaders([
-                'Content-Type' => 'application/json'
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
-                "contents" => [
-                    [
-                        "parts" => [
-                            ["text" => $textPrompt]
-                        ]
-                    ]
-                ],
-                "generationConfig" => [
-                    "responseMimeType" => "application/json"
-                ]
-            ]);
-
-            if (!$textResponse->successful()) {
-                Log::error("Gemini Text Error: " . $textResponse->body());
-                return response()->json(['error' => 'Gagal mengekstrak bahan dari deskripsi.'], 500);
-            }
-
-            $textResult = $textResponse->json('candidates.0.content.parts.0.text');
-            $ingredients = json_decode(trim($textResult), true);
+        if (!$visionResponse->successful()) {
+            Log::error("Gemini Vision Error: " . $visionResponse->body());
+            return response()->json(['error' => 'Gagal mendeteksi makanan dengan AI.'], 500);
         }
 
-        if (empty($ingredients) || !is_array($ingredients)) {
-            return response()->json(['error' => 'Tidak ada bahan makanan yang terdeteksi.'], 400);
+        $visionText = $visionResponse->json('candidates.0.content.parts.0.text');
+        $detectionData = json_decode(trim($visionText), true);
+
+        if (empty($detectionData) || !isset($detectionData['food_name'])) {
+            return response()->json(['error' => 'Tidak ada makanan yang terdeteksi.'], 400);
         }
 
-        // ==========================================================
-        // Tahap 2: Estimasi Porsi/Berat (gram) per Bahan
-        // ==========================================================
+        $foodName = $detectionData['food_name'];
+        $ingredients = $detectionData['ingredients'] ?? [$foodName];
+
         $ingredientsString = implode(', ', $ingredients);
 
-        $weightParts = [
-            ["text" => "Based on the identified ingredients: [{$ingredientsString}], user notes: \"{$userNotes}\", and description: \"{$description}\",
-            estimate the weight of each ingredient in grams for a single serving.
-            Return ONLY a JSON object mapping each ingredient to its weight in grams.
-            Example response: {\"Nasi Putih\": 150, \"Ayam Goreng\": 80}"]
-        ];
-        if ($hasImage) {
-            $weightParts[] = [
-                "inlineData" => [
-                    "mimeType" => $mimeType,
-                    "data" => $base64Image
-                ]
-            ];
-        }
+        $weightPrompt = "Berdasarkan gambar makanan ini dan bahan-bahan yang teridentifikasi: [{$ingredientsString}], 
+        estimasi berat masing-masing bahan dalam gram untuk satu porsi. Catatan pengguna: \"{$userNotes}\".
+        Return ONLY a JSON object mapping ingredient to weight in grams.
+        Example: {\"Nasi Putih\": 150, \"Ayam Goreng\": 80}";
 
         $weightResponse = Http::timeout(60)->withHeaders([
             'Content-Type' => 'application/json'
         ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
-            "contents" => [["parts" => $weightParts]],
+            "contents" => [
+                [
+                    "parts" => [
+                        ["text" => $weightPrompt],
+                        [
+                            "inlineData" => [
+                                "mimeType" => $mimeType,
+                                "data" => $base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ],
             "generationConfig" => ["responseMimeType" => "application/json"]
         ]);
 
@@ -176,25 +127,24 @@ class ScanController extends Controller
             $weights = json_decode(trim($weightText), true) ?? [];
         }
 
-        // ==========================================================
-        // Tahap 3: Embedding & Query TKPI per Bahan (RAG)
-        // ==========================================================
         $totalCalories = 0;
         $totalProtein = 0;
         $totalFat = 0;
         $totalCarbs = 0;
         $totalFiber = 0;
-        $totalIron = 0;
-        $totalCalcium = 0;
+        $totalSugar = 0;
+        $totalWeight = 0;
         $tkpiDetails = [];
+        $glycemicIndexWeighted = 0;
 
         foreach ($ingredients as $ingredient) {
             $weight = $weights[$ingredient] ?? 50;
+            $totalWeight += $weight;
 
             $embedResponse = Http::timeout(30)->withHeaders([
                 'Content-Type' => 'application/json'
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={$geminiKey}", [
-                "model" => "models/gemini-embedding-001",
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={$geminiKey}", [
+                "model" => "models/gemini-embedding-2",
                 "content" => [
                     "parts" => [
                         ["text" => "Nama Makanan: " . $ingredient]
@@ -220,13 +170,13 @@ class ScanController extends Controller
                     if ($match) {
                         $meta = $match['metadata'];
 
-                        $calVal = (double)($meta['kalori'] ?? 0);
+                        $calVal = (double)($meta['kalori'] ?? $meta['energi'] ?? 0);
                         $protVal = (double)($meta['protein'] ?? 0);
                         $fatVal = (double)($meta['lemak'] ?? 0);
                         $carbsVal = (double)($meta['karbohidrat'] ?? 0);
-                        $fiberVal = (double)($meta['serat'] ?? $meta['fiber'] ?? 0);
-                        $ironVal = (double)($meta['zat_besi'] ?? $meta['besi'] ?? $meta['iron'] ?? 0);
-                        $calcVal = (double)($meta['kalsium'] ?? $meta['calcium'] ?? 0);
+                        $fiberVal = (double)($meta['serat'] ?? 0);
+                        $sugarVal = (double)($meta['gula'] ?? 0);
+                        $giVal = (double)($meta['glycemic_index'] ?? $meta['gi'] ?? 0);
 
                         $factor = $weight / 100.0;
                         $totalCalories += $calVal * $factor;
@@ -234,21 +184,25 @@ class ScanController extends Controller
                         $totalFat += $fatVal * $factor;
                         $totalCarbs += $carbsVal * $factor;
                         $totalFiber += $fiberVal * $factor;
-                        $totalIron += $ironVal * $factor;
-                        $totalCalcium += $calcVal * $factor;
+                        $totalSugar += $sugarVal * $factor;
 
-                         $tkpiDetails[] = "- {$ingredient} ({$weight}g) -> '{$meta['nama_makanan']}': Kal " . round($calVal * $factor, 1) . " kkal, Pro " . round($protVal * $factor, 1) . "g, Lem " . round($fatVal * $factor, 1) . "g, Kar " . round($carbsVal * $factor, 1) . "g";
+                        if ($giVal > 0) {
+                            $glycemicIndexWeighted += ($giVal * $carbsVal * $factor);
+                        }
+
+                        $tkpiDetails[] = "- {$ingredient} ({$weight}g) -> '{$meta['nama_makanan']}': Kalori " . round($calVal * $factor, 1) . " kkal, Karbo " . round($carbsVal * $factor, 1) . "g, Protein " . round($protVal * $factor, 1) . "g, Lemak " . round($fatVal * $factor, 1) . "g, Serat " . round($fiberVal * $factor, 1) . "g, Gula " . round($sugarVal * $factor, 1) . "g" . ($giVal > 0 ? ", GI {$giVal}" : "");
                     }
                 }
             }
         }
 
         if ($totalCalories == 0) {
-            Log::info("Pinecone RAG returned 0 calories or failed. Falling back to Gemini direct nutrition estimation.");
-            $nutritionPrompt = "For the following list of ingredients and their estimated weights:
+            Log::info("Pinecone RAG returned 0 calories. Fallback to Gemini direct estimation.");
+            
+            $nutritionPrompt = "Untuk bahan-bahan berikut dengan estimasi berat:
             " . json_encode($weights) . "
             
-            Estimate the total nutrition values.
+            Estimasi total nilai nutrisi.
             Return ONLY a JSON object:
             {
               \"calories_kcal\": float,
@@ -256,8 +210,8 @@ class ScanController extends Controller
               \"fat_g\": float,
               \"carbs_g\": float,
               \"fiber_g\": float,
-              \"iron_mg\": float,
-              \"calcium_mg\": float
+              \"sugar_g\": float,
+              \"glycemic_index\": float
             }";
 
             $nutritionResponse = Http::timeout(30)->withHeaders([
@@ -283,114 +237,127 @@ class ScanController extends Controller
                     $totalFat = (double)($nutrients['fat_g'] ?? 0);
                     $totalCarbs = (double)($nutrients['carbs_g'] ?? 0);
                     $totalFiber = (double)($nutrients['fiber_g'] ?? 0);
-                    $totalIron = (double)($nutrients['iron_mg'] ?? 0);
-                    $totalCalcium = (double)($nutrients['calcium_mg'] ?? 0);
+                    $totalSugar = (double)($nutrients['sugar_g'] ?? 0);
+                    $glycemicIndexWeighted = (double)($nutrients['glycemic_index'] ?? 0) * $totalCarbs;
                 }
             }
         }
 
-        $tkpiContext = implode("\n", $tkpiDetails);
+        $avgGlycemicIndex = ($totalCarbs > 0 && $glycemicIndexWeighted > 0) 
+            ? round($glycemicIndexWeighted / $totalCarbs, 1) 
+            : 0;
 
-        // ==========================================================
-        // Tahap 4: Keputusan DSS & Rekomendasi
-        // ==========================================================
-        $dssParts = [
-            ["text" => "You are an expert nutritionist. I will provide the list of ingredients, their calculated nutritional values, the user profile context, and user notes.
-        
-        USER PROFILE CONTEXT:
-        {$profileInfo}
-        
-        USER NOTES ABOUT THIS MEAL:
-        \"{$userNotes}\"
+        $glycemicLoad = ($avgGlycemicIndex > 0 && $totalCarbs > 0) 
+            ? round(($avgGlycemicIndex * $totalCarbs) / 100, 1) 
+            : 0;
 
-        INGREDIENTS & ESTIMATED NUTRIENTS (TKPI RAG):
-        Ingredients: {$ingredientsString}
-        Calculated Total Calories: {$totalCalories} kcal
-        Calculated Total Protein: {$totalProtein} g
-        Calculated Total Fat: {$totalFat} g
-        Calculated Total Carbs: {$totalCarbs} g
-        Calculated Total Fiber: {$totalFiber} g
-        Calculated Total Iron: {$totalIron} mg
-        Calculated Total Calcium: {$totalCalcium} mg
-        
-        Details per ingredient:
-        {$tkpiContext}
-        
-        Task:
-        1. Review the calculated nutrients and ingredients.
-        2. Provide personalized recommendation status (DIANJURKAN|PERHATIAN|HINDARI).
-           *CRITICAL*: If the ingredients contain any items listed in the USER's allergies, you MUST mark it as HINDARI and explain why in the notes.
-           *CONTEXT*: Consider the user's status (pregnant/breastfeeding) or the child's age (MPASI suitability).
-        3. Add notes in Indonesian explaining why it is recommended or not, and any tips. Mention the user/child name ($targetName) if appropriate.
-        4. Output the food name detected representing the meal.
+        $glycemicScore = $glycemicLoad;
 
-        Return ONLY a JSON object:
-        {
-          \"food_name_detected\": \"string\",
-          \"notes\": \"string\",
-          \"recommendation_status\": \"DIANJURKAN|PERHATIAN|HINDARI\"
-        }"]
-        ];
-        if ($hasImage) {
-            $dssParts[] = [
-                "inlineData" => [
-                    "mimeType" => $mimeType,
-                    "data" => $base64Image
-                ]
-            ];
+        $riskCategory = 'low';
+        if ($glycemicScore >= 20) {
+            $riskCategory = 'high';
+        } elseif ($glycemicScore >= 11) {
+            $riskCategory = 'medium';
         }
 
-        $ragResponse = Http::timeout(60)->withHeaders([
+        $tkpiContext = implode("\n", $tkpiDetails);
+
+        $dssPrompt = "Anda adalah ahli gizi spesialis Diabetes Mellitus. Saya akan memberikan informasi makanan yang dipindai pengguna, nilai nutrisi, dan profil kesehatan.
+
+USER PROFILE:
+{$profileInfo}
+
+USER NOTES:
+\"{$userNotes}\"
+
+MAKANAN TERDETEKSI:
+Nama: {$foodName}
+Bahan: {$ingredientsString}
+
+NUTRISI TOTAL (dari TKPI):
+Total Kalori: {$totalCalories} kkal
+Total Karbohidrat: {$totalCarbs} g
+Total Gula: {$totalSugar} g
+Total Protein: {$totalProtein} g
+Total Lemak: {$totalFat} g
+Total Serat: {$totalFiber} g
+Estimasi Indeks Glikemik: {$avgGlycemicIndex}
+Glycemic Load: {$glycemicLoad}
+Kategori Risiko Glikemik: {$riskCategory}
+
+Detail per bahan:
+{$tkpiContext}
+
+TASK:
+1. Berikan status rekomendasi untuk penderita diabetes (DIANJURKAN | PERHATIAN | HINDARI).
+   *CRITICAL*: Jika ada bahan yang termasuk alergi pengguna, WAJIB HINDARI dan jelaskan.
+   Pertimbangkan status diabetes pengguna ({$diabetesStatusMap[$profile->diabetes_status]}).
+2. Berikan AI Insight dalam Bahasa Indonesia menjelaskan dampak makanan ini terhadap gula darah pengguna (2-3 kalimat).
+3. Berikan AI Recommendation berupa saran praktis untuk pengguna (2-3 kalimat).
+4. Berikan 2-3 alternative_foods berupa pangan lokal Indonesia dengan GI lebih rendah sebagai pengganti. Format array of objects: [{\"name\": \"Nasi Merah\", \"reason\": \"GI lebih rendah dan kaya serat\"}]
+
+Return ONLY a JSON object:
+{
+  \"recommendation_status\": \"DIANJURKAN|PERHATIAN|HINDARI\",
+  \"ai_insight\": \"string (2-3 kalimat)\",
+  \"ai_recommendation\": \"string (2-3 kalimat)\",
+  \"alternative_foods\": [{\"name\": \"string\", \"reason\": \"string\"}]
+}";
+
+        $dssResponse = Http::timeout(60)->withHeaders([
             'Content-Type' => 'application/json'
         ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
-            "contents" => [["parts" => $dssParts]],
+            "contents" => [
+                [
+                    "parts" => [
+                        ["text" => $dssPrompt]
+                    ]
+                ]
+            ],
             "generationConfig" => ["responseMimeType" => "application/json"]
         ]);
 
-        if (!$ragResponse->successful()) {
-            Log::error("Gemini Analysis Error: " . $ragResponse->body());
+        if (!$dssResponse->successful()) {
+            Log::error("Gemini DSS Error: " . $dssResponse->body());
             return response()->json(['error' => 'Gagal menganalisis keputusan gizi.'], 500);
         }
 
-        $resultJsonString = $ragResponse->json('candidates.0.content.parts.0.text');
-        $decisionData = json_decode($resultJsonString, true);
+        $dssText = $dssResponse->json('candidates.0.content.parts.0.text');
+        $dssData = json_decode($dssText, true);
 
-        if (!$decisionData) {
-            return response()->json(['error' => 'Gagal mengurai respons keputusan AI.'], 500);
+        if (!$dssData) {
+            return response()->json(['error' => 'Gagal mengurai respons AI.'], 500);
         }
 
-        // ==========================================
-        // Tahap 5: Simpan ke Database
-        // ==========================================
         $photoUrl = null;
-        if ($hasImage) {
-            $path = $request->file('image')->store('public/food_logs');
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('public/food_scans');
             $photoUrl = asset('storage/' . str_replace('public/', '', $path));
         }
 
-        $dataResponse = [
-            'target_type' => $request->target_type,
-            'target_id' => $request->target_id,
+        $responseData = [
+            'food_name_detected' => $foodName,
+            'ingredients' => $ingredients,
+            'portion_grams' => round($totalWeight, 0),
             'photo_url' => $photoUrl,
-            'food_name_detected' => $decisionData['food_name_detected'] ?? $ingredientsString,
-            'notes' => $decisionData['notes'] ?? '',
-            'recommendation_status' => $decisionData['recommendation_status'] ?? 'PERHATIAN',
             'calories_kcal' => round($totalCalories, 2),
+            'carbs_g' => round($totalCarbs, 2),
+            'sugar_g' => round($totalSugar, 2),
             'protein_g' => round($totalProtein, 2),
             'fat_g' => round($totalFat, 2),
-            'carbs_g' => round($totalCarbs, 2),
             'fiber_g' => round($totalFiber, 2),
-            'iron_mg' => round($totalIron, 2),
-            'calcium_mg' => round($totalCalcium, 2),
+            'glycemic_index' => $avgGlycemicIndex,
+            'glycemic_score' => $glycemicScore,
+            'risk_category' => $riskCategory,
+            'recommendation_status' => $dssData['recommendation_status'] ?? 'PERHATIAN',
+            'ai_insight' => $dssData['ai_insight'] ?? '',
+            'ai_recommendation' => $dssData['ai_recommendation'] ?? '',
+            'alternative_foods' => $dssData['alternative_foods'] ?? [],
         ];
 
         return response()->json([
-            'message' => 'Analisis berhasil',
-            'data' => $dataResponse
-        ], 201);
+            'message' => 'Analisis makanan berhasil',
+            'data' => $responseData
+        ], 200);
     }
 }
-
-
-
-// tes automation deployment

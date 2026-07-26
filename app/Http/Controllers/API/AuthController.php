@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 use App\Models\User;
-use App\Models\MotherProfile;
-use App\Models\ChildProfile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +19,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
+            'password_confirmation' => 'required|same:password',
         ]);
 
         if ($validator->fails()) {
@@ -33,48 +32,16 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'MOTHER',
+            'role' => 'user',
             'is_active' => false,
             'otp_code' => $otpCode,
         ]);
 
-        $status = $request->pregnancy_status ?? 'Sedang Menyusui';
-        if ($request->trimester) {
-            $trimesterMap = [
-                'Trim 1' => 'PREGNANT_T1',
-                'Trim 2' => 'PREGNANT_T2',
-                'Trim 3' => 'PREGNANT_T3',
-            ];
-            $status = $trimesterMap[$request->trimester] ?? $status;
-        }
-
-        MotherProfile::create([
-            'user_id' => $user->id,
-            'full_name' => $user->name,
-            'birth_date' => $request->mother_dob ?? now()->subYears(25)->toDateString(),
-            'status' => $status,
-            'allergies' => $request->mother_allergies ?? [],
-            'hpl' => $request->hpl,
-        ]);
-
-        if ($request->has('children') && is_array($request->children)) {
-            foreach ($request->children as $childData) {
-                if (!empty($childData['name'])) {
-                    ChildProfile::create([
-                        'user_id' => $user->id,
-                        'name' => $childData['name'],
-                        'birth_date' => $childData['birth_date'] ?? now()->toDateString(),
-                        'gender' => $childData['gender'] ?? 'L',
-                        'allergies' => $childData['allergies'] ?? [],
-                    ]);
-                }
-            }
-        }
-
+        // Send OTP via email
         Mail::to($user->email)->send(new ActivationMail($otpCode));
 
         $response = [
-            'message' => 'User successfully registered. Please verify OTP.',
+            'message' => 'User successfully registered. Please verify OTP sent to your email.',
             'requires_activation' => true,
             'email' => $user->email,
         ];
