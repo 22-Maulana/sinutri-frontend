@@ -82,6 +82,7 @@ class DashboardController extends Controller
     public function weeklyProgress(Request $request)
     {
         $user = $request->user();
+        $profile = $user->userProfile;
         $endDate = Carbon::parse($request->input('end_date', Carbon::today()->toDateString()));
         $startDate = $endDate->copy()->subDays(6);
 
@@ -124,12 +125,87 @@ class DashboardController extends Controller
             ];
         }
 
+        $dailyTargets = $this->calculateDailyTargets($profile);
+        $deepseekTips = $this->generateDeepSeekWeeklyTips($user, $profile, $weeklyData, $dailyTargets);
+
         return response()->json([
             'message' => 'Weekly progress',
             'start_date' => $startDate->toDateString(),
             'end_date' => $endDate->toDateString(),
             'data' => $weeklyData,
+            'ai_weekly_tips' => $deepseekTips,
         ]);
+    }
+
+    private function generateDeepSeekWeeklyTips($user, $profile, $weeklyData, $dailyTargets)
+    {
+        $deepseekKey = env('DEEPSEEK_API_KEY');
+
+        $avgCal = array_sum(array_column($weeklyData, 'calories')) / max(1, count($weeklyData));
+        $avgCarbs = array_sum(array_column($weeklyData, 'carbs')) / max(1, count($weeklyData));
+        $avgSugar = array_sum(array_column($weeklyData, 'sugar')) / max(1, count($weeklyData));
+        $avgFiber = array_sum(array_column($weeklyData, 'fiber')) / max(1, count($weeklyData));
+        $avgGS = array_sum(array_column($weeklyData, 'glycemic_score')) / max(1, count($weeklyData));
+
+        $targetCal = $dailyTargets['calories'] ?? 2000;
+        $targetCarbs = $dailyTargets['carbs'] ?? 250;
+        $targetSugar = $dailyTargets['sugar'] ?? 25;
+        $targetFiber = $dailyTargets['fiber'] ?? 30;
+
+        $diabetesMap = [
+            'dm_type_1' => 'Diabetes Mellitus Tipe 1',
+            'dm_type_2' => 'Diabetes Mellitus Tipe 2',
+            'prediabetes' => 'Prediabetes',
+            'not_diagnosed' => 'Belum Terdiagnosis DM'
+        ];
+        $statusText = $profile ? ($diabetesMap[$profile->diabetes_status ?? 'not_diagnosed'] ?? 'Personal') : 'Personal';
+        $userName = $profile ? $profile->name : ($user->name ?? 'Pengguna');
+        $userGoals = ($profile && !empty($profile->health_targets)) ? implode(', ', $profile->health_targets) : 'Menjaga kestabilan gula darah';
+
+        if (!empty($deepseekKey)) {
+            try {
+                $response = Http::timeout(6)->withHeaders([
+                    'Authorization' => 'Bearer ' . $deepseekKey,
+                    'Content-Type' => 'application/json',
+                ])->post('https://api.deepseek.com/chat/completions', [
+                    'model' => 'deepseek-chat',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'Anda adalah konsultan gizi AI spesialis Diabetes Mellitus & Nutrisi Personal. Berikan 1-2 kalimat tips evaluasi nutrisi mingguan yang spesifik, ramah, dan solutif.'
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => "PROFIL: Nama {$userName}, Status DM: {$statusText}, Target: {$userGoals}.\nRATA-RATA 7 HARI: Kalori {$avgCal}/{$targetCal} kkal, Karbo {$avgCarbs}/{$targetCarbs}g, Gula {$avgSugar}/{$targetSugar}g, Serat {$avgFiber}/{$targetFiber}g, Glycemic Score {$avgGS}.\nBerikan 2 kalimat saran perbaikan nutrisi berbasis DeepSeek AI."
+                        ]
+                    ],
+                    'max_tokens' => 200,
+                    'temperature' => 0.7,
+                ]);
+
+                if ($response->successful()) {
+                    $tipContent = $response->json('choices.0.message.content');
+                    if (!empty($tipContent)) {
+                        Log::info("[DEEPSEEK-AI] Tips Rekapan Mingguan Berhasil Dibuat.");
+                        return trim($tipContent);
+                    }
+                } else {
+                    Log::warning("[DEEPSEEK-AI] DeepSeek API Non-200: " . $response->body());
+                }
+            } catch (\Exception $e) {
+                Log::warning("[DEEPSEEK-AI] Exception: " . $e->getMessage());
+            }
+        }
+
+        if ($avgSugar > $targetSugar) {
+            return "Tips DeepSeek AI: Rata-rata asupan gula mingguan Anda ({$avgSugar}g) melebihi batas aman ({$targetSugar}g). Ganti konsumsi cemilan manis dengan buah lokal segar ber-GI rendah seperti alpukat atau pepaya.";
+        } elseif ($avgFiber < $targetFiber) {
+            return "Tips DeepSeek AI: Rata-rata konsumsi serat mingguan Anda ({$avgFiber}g) masih perlu ditingkatkan mendekati target {$targetFiber}g. Tambahkan porsi tumis sayuran hijau dan tempe pada menu utama Anda.";
+        } elseif ($avgCal > ($targetCal * 1.15)) {
+            return "Tips DeepSeek AI: Rata-rata asupan kalori harian Anda sedikit melebihi kebutuhan. Kurangi porsi nasi dan imbangilah dengan jalan santai secara rutin.";
+        } else {
+            return "Tips DeepSeek AI: Asupan gizi mingguan Anda berada dalam rentang yang sangat baik untuk menjaga gula darah tetap stabil. Pertahankan pola makan pangan lokal bergizi seimbang ini!";
+        }
     }
 
     private function calculateDailyTargets($profile)
