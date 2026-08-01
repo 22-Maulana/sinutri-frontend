@@ -128,36 +128,8 @@ Return ONLY JSON object:
   \"ai_insight\": \"string\"
 }";
 
-        $mealPlanData = null;
-
-        if (!empty($geminiKey)) {
-            try {
-                $response = Http::timeout(10)->withHeaders([
-                    'Content-Type' => 'application/json'
-                ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
-                    "contents" => [
-                        [
-                            "parts" => [
-                                ["text" => $prompt]
-                            ]
-                        ]
-                    ],
-                    "generationConfig" => [
-                        "responseMimeType" => "application/json"
-                    ]
-                ]);
-
-                if ($response->successful()) {
-                    $resultText = $response->json('candidates.0.content.parts.0.text');
-                    $cleanedJson = preg_replace('/^```json\s*|\s*```$/m', '', trim($resultText));
-                    $mealPlanData = json_decode($cleanedJson, true);
-                } else {
-                    Log::warning("Gemini Meal Planner Non-200: " . $response->body());
-                }
-            } catch (\Exception $e) {
-                Log::warning("Gemini Meal Planner Exception: " . $e->getMessage());
-            }
-        }
+        $resultText = \App\Helpers\GeminiHelper::generateContent($prompt, null, null, 12);
+        $mealPlanData = $resultText ? json_decode($resultText, true) : null;
 
         // Fallback rule-based meal plan if Gemini fails or times out
         if (!$mealPlanData || empty($mealPlanData['breakfast_items'])) {
