@@ -258,7 +258,10 @@ Return ONLY a JSON object:
   \"alternative_foods\": [{\"name\": \"string\", \"reason\": \"string\"}]
 }";
 
-        $dssText = \App\Helpers\GeminiHelper::generateContent($dssPrompt, null, null, 10);
+        $dssText = \App\Helpers\DeepSeekHelper::generateContent($dssPrompt);
+        if (!$dssText) {
+            $dssText = \App\Helpers\GeminiHelper::generateContent($dssPrompt, null, null, 10);
+        }
         $dssData = $dssText ? json_decode($dssText, true) : null;
 
         if (!$dssData) {
