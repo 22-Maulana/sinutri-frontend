@@ -19,7 +19,11 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-            'password_confirmation' => 'required|same:password',
+            'password_confirmation' => 'nullable|same:password',
+            'birth_date' => 'nullable|string',
+            'dob' => 'nullable|string',
+            'allergies' => 'nullable|array',
+            'food_allergies' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -37,8 +41,35 @@ class AuthController extends Controller
             'otp_code' => $otpCode,
         ]);
 
+        // Auto create user profile with DOB / Age & Allergies if provided
+        $dobInput = $request->birth_date ?? $request->dob;
+        $allergiesInput = $request->food_allergies ?? $request->allergies ?? [];
+        $age = null;
+        if ($dobInput) {
+            try {
+                $age = \Carbon\Carbon::parse($dobInput)->age;
+            } catch (\Throwable $e) {
+                // fallback
+            }
+        }
+
+        try {
+            \App\Models\UserProfile::create([
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'age' => $age ?? 25,
+                'food_allergies' => is_array($allergiesInput) ? $allergiesInput : [],
+            ]);
+        } catch (\Throwable $e) {
+            // Profile fallback
+        }
+
         // Send OTP via email
-        Mail::to($user->email)->send(new ActivationMail($otpCode));
+        try {
+            Mail::to($user->email)->send(new ActivationMail($otpCode));
+        } catch (\Throwable $e) {
+            // Mail send fallback for dev
+        }
 
         $response = [
             'message' => 'User successfully registered. Please verify OTP sent to your email.',

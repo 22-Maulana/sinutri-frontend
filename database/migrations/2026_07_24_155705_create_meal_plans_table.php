@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('meal_plans', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->date('date');
-            $table->json('breakfast');
-            $table->json('lunch');
-            $table->json('dinner');
-            $table->json('snacks');
-            $table->decimal('total_calories', 8, 2);
-            $table->decimal('total_carbs', 8, 2);
-            $table->decimal('total_protein', 8, 2);
-            $table->decimal('total_fat', 8, 2);
-            $table->decimal('total_fiber', 8, 2);
-            $table->text('ai_insight');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('meal_plans')) {
+            Schema::create('meal_plans', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->date('date');
+                $table->json('breakfast');
+                $table->json('lunch');
+                $table->json('dinner');
+                $table->json('snacks');
+                $table->decimal('total_calories', 8, 2);
+                $table->decimal('total_carbs', 8, 2);
+                $table->decimal('total_protein', 8, 2);
+                $table->decimal('total_fat', 8, 2);
+                $table->decimal('total_fiber', 8, 2);
+                $table->text('ai_insight');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
