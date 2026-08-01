@@ -29,7 +29,7 @@ class ActivationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Gizilens - Kode Aktivasi Akun Anda',
+            subject: 'SINUTRI - Kode Aktivasi Akun Anda',
         );
     }
 
@@ -41,11 +41,11 @@ class ActivationMail extends Mailable
         return new Content(
             htmlString: '
             <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
-                <h2 style="color: #4CAF50;">Selamat Datang di Gizilens!</h2>
+                <h2 style="color: #4CAF50;">Selamat Datang di SINUTRI!</h2>
                 <p>Terima kasih telah mendaftar. Untuk menyelesaikan proses registrasi dan mengaktifkan akun Anda, silakan gunakan kode OTP berikut:</p>
                 <h1 style="background: #f4f4f4; padding: 15px; border-radius: 10px; display: inline-block; letter-spacing: 5px;">' . $this->otpCode . '</h1>
                 <p>Kode ini akan meminta Anda memasukkannya di dalam aplikasi.</p>
-                <p style="color: #888; font-size: 12px; margin-top: 30px;">Tim Gizilens &copy; ' . date('Y') . '</p>
+                <p style="color: #888; font-size: 12px; margin-top: 30px;">Tim SINUTRI &copy; ' . date('Y') . '</p>
             </div>
             '
         );
