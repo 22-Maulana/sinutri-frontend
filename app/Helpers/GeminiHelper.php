@@ -62,7 +62,7 @@ class GeminiHelper
                         return preg_replace('/^```json\s*|\s*```$/m', '', trim($text));
                     }
                 } else {
-                    $status = $response->statusCode();
+                    $status = $response->status();
                     $body = $response->body();
                     Log::warning("[GEMINI-HELPER] Model {$model} returned {$status}: {$body}");
 

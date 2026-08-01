@@ -50,7 +50,7 @@ class DeepSeekHelper
                     return preg_replace('/^```json\s*|\s*```$/m', '', trim($content));
                 }
             } else {
-                Log::warning("[DEEPSEEK-HELPER] DeepSeek API returned " . $response->statusCode() . ": " . $response->body());
+                Log::warning("[DEEPSEEK-HELPER] DeepSeek API returned " . $response->status() . ": " . $response->body());
             }
         } catch (\Exception $e) {
             Log::warning("[DEEPSEEK-HELPER] Exception: " . $e->getMessage());
