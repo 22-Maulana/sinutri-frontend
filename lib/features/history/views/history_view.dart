@@ -6,7 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../providers/history_provider.dart';
 import '../models/history_state.dart';
 import '../../../routes/app_routes.dart';
-import '../../main/views/main_wrapper_screen.dart'; // To access bottomNavIndexProvider
+import '../../main/views/main_wrapper_screen.dart';
 
 class HistoryView extends ConsumerWidget {
   const HistoryView({super.key});
@@ -120,7 +120,7 @@ class HistoryView extends ConsumerWidget {
                         const SizedBox(height: 32),
                         const Text('Daftar Konsumsi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
-                        ...state.meals.map((meal) => _buildMealCard(context, meal, state)).toList(),
+                        ...state.meals.map((meal) => _buildMealCard(context, ref, meal, state)),
                         const SizedBox(height: 100),
                       ],
                     ),
@@ -218,67 +218,149 @@ class HistoryView extends ConsumerWidget {
     );
   }
 
-  Widget _buildMealCard(BuildContext context, DailyMealItem meal, HistoryState state) {
-    return GestureDetector(
-      onTap: () {
-        context.push(AppRoutes.historyDetail, extra: {'meal': meal, 'date': state.dateText});
-      },
-      child: Container(
+  Widget _buildMealCard(BuildContext context, WidgetRef ref, DailyMealItem meal, HistoryState state) {
+    return Dismissible(
+      key: Key(meal.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: Colors.red.shade400,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.textSecondary.withOpacity(0.1)),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: AppColors.secondary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.fastfood, color: AppColors.primary),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: Text(meal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      Text(meal.time, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text('${meal.calories} kkal', style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.lightBlue.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(meal.recommendation, style: const TextStyle(color: Colors.blue, fontSize: 10)),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'P: ${meal.protein.toInt()}g   L: ${meal.fat.toInt()}g   K: ${meal.carbs.toInt()}g',
-                    style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                  )
-                ],
-              ),
-            )
+            Icon(Icons.delete_rounded, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text('Hapus', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
           ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('Hapus Riwayat?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Text(
+              'Yakin ingin menghapus riwayat makan "${meal.name}"? Tindakan ini tidak dapat dibatalkan.',
+              style: const TextStyle(fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Ya, Hapus'),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
+      onDismissed: (direction) async {
+        await ref.read(historyProvider.notifier).deleteHistory(meal.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('"${meal.name}" berhasil dihapus dari riwayat.'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }
+      },
+      child: GestureDetector(
+        onTap: () {
+          context.push(AppRoutes.historyDetail, extra: {'meal': meal, 'date': state.dateText});
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.textSecondary.withOpacity(0.1)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.fastfood, color: AppColors.primary),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: Text(meal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                        Text(meal.time, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text('${meal.calories} kkal', style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.lightBlue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(meal.recommendation, style: const TextStyle(color: Colors.blue, fontSize: 10)),
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'P: ${meal.protein.toInt()}g   L: ${meal.fat.toInt()}g   K: ${meal.carbs.toInt()}g',
+                            style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                          ),
+                        ),
+                        // Hint swipe to delete
+                        const Row(
+                          children: [
+                            Icon(Icons.swipe_left, size: 12, color: AppColors.textSecondary),
+                            SizedBox(width: 2),
+                            Text('geser untuk hapus', style: TextStyle(fontSize: 9, color: AppColors.textSecondary)),
+                          ],
+                        )
+                      ],
+                    )
+                  ],
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

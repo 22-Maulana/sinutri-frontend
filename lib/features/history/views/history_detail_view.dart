@@ -284,14 +284,59 @@ class _HistoryDetailViewState extends ConsumerState<HistoryDetailView> {
         const SizedBox(height: 16),
         TextButton(
           onPressed: () async {
+            // Konfirmasi sebelum hapus
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Hapus Riwayat?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                content: Text(
+                  'Yakin ingin menghapus riwayat makan "${widget.meal.name}"?\nTindakan ini tidak dapat dibatalkan.',
+                  style: const TextStyle(fontSize: 14, height: 1.5),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Batal'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Ya, Hapus'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirmed != true) return;
+
             setState(() { _isDeleting = true; });
             await ref.read(historyProvider.notifier).deleteHistory(widget.meal.id);
             if (!mounted) return;
             setState(() { _isDeleting = false; });
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Riwayat dihapus.')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('"${widget.meal.name}" berhasil dihapus dari riwayat.'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            );
             context.pop();
           },
-          child: _isDeleting ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Hapus Riwayat', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          child: _isDeleting
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
+              : const Text('Hapus Riwayat', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         ),
       ],
     );
