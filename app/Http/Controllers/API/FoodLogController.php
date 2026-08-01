@@ -70,6 +70,8 @@ class FoodLogController extends Controller
             'alternative_foods' => $request->input('alternative_foods'),
         ]);
 
+        \App\Helpers\CacheManager::invalidateUserCache($request->user()->id);
+
         return response()->json([
             'message' => 'Food log berhasil disimpan',
             'data' => $foodLog
@@ -297,6 +299,8 @@ Return ONLY a JSON object:
             'notes' => $request->notes
         ]);
 
+        \App\Helpers\CacheManager::invalidateUserCache($request->user()->id);
+
         return response()->json([
             'message' => 'Food log berhasil diupdate',
             'data' => $log
@@ -312,6 +316,8 @@ Return ONLY a JSON object:
         }
 
         $log->delete();
+
+        \App\Helpers\CacheManager::invalidateUserCache($request->user()->id);
 
         return response()->json([
             'message' => 'Food log berhasil dihapus'

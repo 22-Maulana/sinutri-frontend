@@ -181,6 +181,8 @@ class ProfileController extends Controller
             $profile->save();
         }
 
+        \App\Helpers\CacheManager::invalidateUserCache($user->id);
+
         return response()->json([
             'message' => 'Profile berhasil diupdate',
             'data' => $profile
