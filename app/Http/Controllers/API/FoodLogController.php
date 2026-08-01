@@ -14,6 +14,13 @@ class FoodLogController extends Controller
 {
     public function store(Request $request)
     {
+        Log::info("[FOODLOG-BE] User konfirmasi 'Ya, Saya Makan Ini' -> Menyimpan FoodLog ke Database", [
+            'user_id' => $request->user()?->id,
+            'food_name' => $request->input('food_name_detected'),
+            'calories' => $request->input('calories_kcal'),
+            'meal_type' => $request->input('meal_type'),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'meal_time' => 'required|date',
             'meal_type' => 'required|in:breakfast,lunch,dinner,snack',

@@ -13,6 +13,12 @@ class ChatbotController extends Controller
     {
         set_time_limit(90);
 
+        Log::info("[CHATBOT-BE] Memproses pesan dari User: {$request->user()?->email}", [
+            'user_id' => $request->user()?->id,
+            'message' => $request->input('message'),
+            'target_profile' => $request->input('target_profile'),
+        ]);
+
         $request->validate([
             'message' => 'required|string',
         ]);

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\FoodLog;
 use App\Models\MealPlan;
-use Carbon\Carbon;
+use Carbon\Carbon;use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -16,11 +16,8 @@ class DashboardController extends Controller
         $user = $request->user();
         $profile = $user->userProfile;
 
-        if (!$profile) {
-            return response()->json(['error' => 'Profile tidak ditemukan'], 404);
-        }
-
         $date = $request->input('date', Carbon::today()->toDateString());
+        Log::info("[DASHBOARD-BE] Mengambil ringkasan dashboard User: {$user?->email}, Tanggal: {$date}");
 
         // Get today's food logs
         $logs = FoodLog::where('user_id', $user->id)

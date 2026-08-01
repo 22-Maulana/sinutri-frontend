@@ -16,6 +16,13 @@ class ScanController extends Controller
     {
         set_time_limit(180);
 
+        Log::info("[SCAN-BE] Memproses permintaan Scan Makanan.", [
+            'user_id' => $request->user()?->id,
+            'email' => $request->user()?->email,
+            'notes' => $request->input('notes'),
+            'has_image' => $request->hasFile('image'),
+        ]);
+
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
             'notes' => 'nullable|string|max:1000'
@@ -25,6 +32,7 @@ class ScanController extends Controller
         $profile = $user->userProfile;
 
         if (!$profile) {
+            Log::warning("[SCAN-BE] Scan gagal: User ID {$user->id} belum memiliki UserProfile.");
             return response()->json(['error' => 'Harap lengkapi profil kesehatan terlebih dahulu.'], 422);
         }
 
