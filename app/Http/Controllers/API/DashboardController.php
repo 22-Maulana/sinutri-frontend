@@ -181,59 +181,55 @@ class DashboardController extends Controller
     private function generateDailyInsight($user, $profile, $logs, $totalCalories, $totalCarbs, $totalSugar, $avgGlycemicScore, $dailyTargets)
     {
         if ($logs->isEmpty()) {
-            return "Belum ada data konsumsi makanan hari ini. Mulai scan makanan untuk mendapatkan insight yang dipersonalisasi.";
+            return "Belum ada data konsumsi makanan hari ini. Mulai scan makanan untuk mendapatkan insight nutrisi personal Anda.";
+        }
+
+        // Fast rule-based insight fallback
+        $statusText = "Konsumsi kalori dan gizi harian Anda terantau seimbang.";
+        if ($totalCalories > $dailyTargets['calories']) {
+            $statusText = "Asupan kalori hari ini melebihi target ideal. Pertimbangkan aktivitas fisik ringan.";
+        } elseif ($totalSugar > $dailyTargets['sugar']) {
+            $statusText = "Konsumsi gula harian Anda cukup tinggi. Disarankan memperbanyak asupan air putih dan serat.";
+        } elseif ($avgGlycemicScore > 15) {
+            $statusText = "Beban glikemik makanan hari ini cukup tinggi. Pilihlah karbohidrat kompleks untuk menjaga gula darah stabil.";
         }
 
         $geminiKey = env('GEMINI_API_KEY');
-
-        $diabetesStatusMap = [
-            'dm_type_1' => 'Diabetes Mellitus Tipe 1',
-            'dm_type_2' => 'Diabetes Mellitus Tipe 2',
-            'prediabetes' => 'Prediabetes',
-            'not_diagnosed' => 'Belum Terdiagnosis DM'
-        ];
+        if (!$geminiKey) {
+            return $statusText;
+        }
 
         $mealList = $logs->map(function($log) {
             return $log->food_name_detected . " ({$log->meal_type})";
         })->implode(', ');
 
-        $prompt = "Anda adalah ahli gizi spesialis Diabetes Mellitus.
+        try {
+            $prompt = "Berikan AI Daily Insight singkat (2 kalimat) untuk penderita/pencegahan diabetes:
+Nama: {$profile->name}, Makanan hari ini: {$mealList}, Kalori: {$totalCalories}/{$dailyTargets['calories']} kkal, Karbo: {$totalCarbs}/{$dailyTargets['carbs']} g, Gula: {$totalSugar}/{$dailyTargets['sugar']} g, Glycemic Score: {$avgGlycemicScore}.
+Tulis rekomendasi praktis & ramah.";
 
-PROFIL PENGGUNA:
-Nama: {$profile->name}
-Usia: {$profile->age} tahun
-Status Diabetes: {$diabetesStatusMap[$profile->diabetes_status]}
-BMI: {$profile->bmi}
-
-KONSUMSI HARI INI:
-Makanan: {$mealList}
-Total Kalori: {$totalCalories} kkal (Target: {$dailyTargets['calories']} kkal)
-Total Karbohidrat: {$totalCarbs} g (Target: {$dailyTargets['carbs']} g)
-Total Gula: {$totalSugar} g (Target: {$dailyTargets['sugar']} g)
-Rata-rata Glycemic Score: {$avgGlycemicScore}
-
-TASK:
-Berikan AI Daily Insight dalam Bahasa Indonesia (2-3 kalimat singkat) yang memberikan motivasi dan saran praktis untuk pengguna berdasarkan data konsumsi hari ini.
-
-Return ONLY plain text (no JSON, no markdown).";
-
-        $response = Http::timeout(30)->withHeaders([
-            'Content-Type' => 'application/json'
-        ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
-            "contents" => [
-                [
-                    "parts" => [
-                        ["text" => $prompt]
+            $response = Http::timeout(3)->withHeaders([
+                'Content-Type' => 'application/json'
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$geminiKey}", [
+                "contents" => [
+                    [
+                        "parts" => [
+                            ["text" => $prompt]
+                        ]
                     ]
                 ]
-            ]
-        ]);
+            ]);
 
-        if ($response->successful()) {
-            $text = $response->json('candidates.0.content.parts.0.text');
-            return trim($text);
+            if ($response->successful()) {
+                $text = $response->json('candidates.0.content.parts.0.text');
+                if ($text) {
+                    return trim($text);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Timeout or error, fallback to fast rule-based text
         }
 
-        return "Konsumsi makanan hari ini sudah cukup baik. Terus jaga pola makan sehat dan seimbang.";
+        return $statusText;
     }
 }
