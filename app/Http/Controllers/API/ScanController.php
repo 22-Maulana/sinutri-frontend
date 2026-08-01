@@ -171,34 +171,28 @@ class ScanController extends Controller
         }
 
         if ($totalCalories == 0) {
-            Log::info("Pinecone RAG returned 0 calories. Fallback to Gemini direct estimation.");
-            
-            $nutritionPrompt = "Untuk bahan-bahan berikut dengan estimasi berat:
-            " . json_encode($weights) . "
-            
-            Estimasi total nilai nutrisi.
-            Return ONLY a JSON object:
-            {
-              \"calories_kcal\": float,
-              \"protein_g\": float,
-              \"fat_g\": float,
-              \"carbs_g\": float,
-              \"fiber_g\": float,
-              \"sugar_g\": float,
-              \"glycemic_index\": float
-            }";
+            Log::info("[SCAN-BE] Pinecone RAG returned 0 calories. Using TkpiDictionary offline lookup for '{$foodName}'...");
+            $dictData = \App\Helpers\TkpiDictionary::lookup($foodName);
+            $totalCalories = (double)$dictData['kalori'];
+            $totalCarbs = (double)$dictData['karbo'];
+            $totalProtein = (double)$dictData['protein'];
+            $totalFat = (double)$dictData['lemak'];
+            $totalFiber = (double)$dictData['serat'];
+            $totalSugar = (double)$dictData['gula'];
+            $glycemicIndexWeighted = (double)$dictData['gi'] * $totalCarbs;
 
+            $nutritionPrompt = "Untuk makanan '{$foodName}' dan bahan: " . json_encode($weights) . ". Estimasi total nilai nutrisi dalam JSON.";
             $nutritionText = \App\Helpers\GeminiHelper::generateContent($nutritionPrompt, null, null, 10);
             if ($nutritionText) {
                 $nutrients = json_decode($nutritionText, true);
-                if ($nutrients) {
-                    $totalCalories = (double)($nutrients['calories_kcal'] ?? 0);
-                    $totalProtein = (double)($nutrients['protein_g'] ?? 0);
-                    $totalFat = (double)($nutrients['fat_g'] ?? 0);
-                    $totalCarbs = (double)($nutrients['carbs_g'] ?? 0);
-                    $totalFiber = (double)($nutrients['fiber_g'] ?? 0);
-                    $totalSugar = (double)($nutrients['sugar_g'] ?? 0);
-                    $glycemicIndexWeighted = (double)($nutrients['glycemic_index'] ?? 0) * $totalCarbs;
+                if ($nutrients && isset($nutrients['calories_kcal']) && $nutrients['calories_kcal'] > 0) {
+                    $totalCalories = (double)($nutrients['calories_kcal']);
+                    $totalProtein = (double)($nutrients['protein_g'] ?? $totalProtein);
+                    $totalFat = (double)($nutrients['fat_g'] ?? $totalFat);
+                    $totalCarbs = (double)($nutrients['carbs_g'] ?? $totalCarbs);
+                    $totalFiber = (double)($nutrients['fiber_g'] ?? $totalFiber);
+                    $totalSugar = (double)($nutrients['sugar_g'] ?? $totalSugar);
+                    $glycemicIndexWeighted = (double)($nutrients['glycemic_index'] ?? 50) * $totalCarbs;
                 }
             }
         }
