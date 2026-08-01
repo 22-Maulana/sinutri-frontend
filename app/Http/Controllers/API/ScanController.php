@@ -258,9 +258,11 @@ Return ONLY a JSON object:
   \"alternative_foods\": [{\"name\": \"string\", \"reason\": \"string\"}]
 }";
 
-        $dssText = \App\Helpers\DeepSeekHelper::generateContent($dssPrompt);
+        // Primary: Gemini API -> Auto-Switch to DeepSeek API on limit
+        $dssText = \App\Helpers\GeminiHelper::generateContent($dssPrompt, null, null, 10);
         if (!$dssText) {
-            $dssText = \App\Helpers\GeminiHelper::generateContent($dssPrompt, null, null, 10);
+            Log::info("[SCAN-BE] Gemini API limit/unavailable. Auto-switching to DeepSeek AI API...");
+            $dssText = \App\Helpers\DeepSeekHelper::generateContent($dssPrompt);
         }
         $dssData = $dssText ? json_decode($dssText, true) : null;
 

@@ -129,6 +129,10 @@ Return ONLY JSON object:
 }";
 
         $resultText = \App\Helpers\GeminiHelper::generateContent($prompt, null, null, 12);
+        if (!$resultText) {
+            Log::info("[MEALPLANNER-BE] Gemini API limit/unavailable. Auto-switching to DeepSeek AI...");
+            $resultText = \App\Helpers\DeepSeekHelper::generateContent($prompt);
+        }
         $mealPlanData = $resultText ? json_decode($resultText, true) : null;
 
         // Fallback rule-based meal plan if Gemini fails or times out

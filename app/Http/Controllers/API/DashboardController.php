@@ -166,39 +166,16 @@ class DashboardController extends Controller
         $userName = $profile ? $profile->name : ($user->name ?? 'Pengguna');
         $userGoals = ($profile && !empty($profile->health_targets)) ? implode(', ', $profile->health_targets) : 'Menjaga kestabilan gula darah';
 
-        if (!empty($deepseekKey)) {
-            try {
-                $response = Http::timeout(6)->withHeaders([
-                    'Authorization' => 'Bearer ' . $deepseekKey,
-                    'Content-Type' => 'application/json',
-                ])->post('https://api.deepseek.com/chat/completions', [
-                    'model' => 'deepseek-chat',
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => 'Anda adalah konsultan gizi AI spesialis Diabetes Mellitus & Nutrisi Personal. Berikan 1-2 kalimat tips evaluasi nutrisi mingguan yang spesifik, ramah, dan solutif.'
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => "PROFIL: Nama {$userName}, Status DM: {$statusText}, Target: {$userGoals}.\nRATA-RATA 7 HARI: Kalori {$avgCal}/{$targetCal} kkal, Karbo {$avgCarbs}/{$targetCarbs}g, Gula {$avgSugar}/{$targetSugar}g, Serat {$avgFiber}/{$targetFiber}g, Glycemic Score {$avgGS}.\nBerikan 2 kalimat saran perbaikan nutrisi berbasis DeepSeek AI."
-                        ]
-                    ],
-                    'max_tokens' => 200,
-                    'temperature' => 0.7,
-                ]);
+        $prompt = "PROFIL: Nama {$userName}, Status DM: {$statusText}, Target: {$userGoals}.\nRATA-RATA 7 HARI: Kalori {$avgCal}/{$targetCal} kkal, Karbo {$avgCarbs}/{$targetCarbs}g, Gula {$avgSugar}/{$targetSugar}g, Serat {$avgFiber}/{$targetFiber}g, Glycemic Score {$avgGS}.\nBerikan 2 kalimat saran perbaikan nutrisi mingguan.";
 
-                if ($response->successful()) {
-                    $tipContent = $response->json('choices.0.message.content');
-                    if (!empty($tipContent)) {
-                        Log::info("[DEEPSEEK-AI] Tips Rekapan Mingguan Berhasil Dibuat.");
-                        return trim($tipContent);
-                    }
-                } else {
-                    Log::warning("[DEEPSEEK-AI] DeepSeek API Non-200: " . $response->body());
-                }
-            } catch (\Exception $e) {
-                Log::warning("[DEEPSEEK-AI] Exception: " . $e->getMessage());
-            }
+        // Primary: Gemini API -> Auto-Switch to DeepSeek API on limit
+        $tipContent = \App\Helpers\GeminiHelper::generateContent($prompt, null, null, 6);
+        if (!$tipContent) {
+            $tipContent = \App\Helpers\DeepSeekHelper::generateContent($prompt);
+        }
+
+        if (!empty($tipContent)) {
+            return trim($tipContent);
         }
 
         if ($avgSugar > $targetSugar) {
