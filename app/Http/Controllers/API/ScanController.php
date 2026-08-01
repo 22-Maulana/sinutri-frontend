@@ -67,38 +67,65 @@ class ScanController extends Controller
         Return ONLY a JSON object with 'food_name' (detected food name) and 'ingredients' (array of ingredient strings).
         Example: {\"food_name\": \"Nasi Goreng\", \"ingredients\": [\"Nasi Putih\", \"Telur\", \"Minyak Goreng\", \"Bawang Merah\"]}";
 
+        // Tahap 1: Gemini Vision (dengan image)
         $visionText = \App\Helpers\GeminiHelper::generateContent($extractionPrompt, $base64Image, $mimeType, 15);
         $detectionData = $visionText ? json_decode($visionText, true) : null;
 
-        // Smart Fallback Detection if Gemini Vision fails or quota exceeded
+        // Tahap 2: Jika Gemini gagal/limit, gunakan DeepSeek untuk inferensi cerdas dari userNotes
         if (empty($detectionData) || empty($detectionData['food_name'])) {
+            Log::info("[SCAN-BE] Gemini Vision gagal. Menggunakan DeepSeek AI untuk inferensi nama makanan dari catatan pengguna...");
+
             if (!empty($userNotes)) {
-                $foodName = ucwords(trim($userNotes));
-                $ingredients = array_map('trim', explode(',', $userNotes));
-                if (count($ingredients) == 1) {
-                    $ingredients = [$foodName, 'Bumbu Spesial', 'Pelengkap'];
+                $deepseekFoodPrompt = "Pengguna menginformasikan makanan: \"{$userNotes}\".
+Identifikasi nama makanan utama dan list bahan-bahan yang biasanya terkandung dalam makanan tersebut di masakan Indonesia.
+Return ONLY JSON: {\"food_name\": \"Nama Makanan\", \"ingredients\": [\"Bahan1\", \"Bahan2\", \"Bahan3\", \"Bahan4\"]}";
+
+                $deepseekText = \App\Helpers\DeepSeekHelper::generateContent($deepseekFoodPrompt);
+                if ($deepseekText) {
+                    $deepseekData = json_decode($deepseekText, true);
+                    if (!empty($deepseekData['food_name'])) {
+                        $detectionData = $deepseekData;
+                        Log::info("[SCAN-BE] DeepSeek berhasil menginferensi makanan: " . $deepseekData['food_name']);
+                    }
                 }
-            } else {
-                $foodName = "Menu Makanan Campur";
-                $ingredients = ["Nasi Putih", "Lauk Protein", "Sayuran Segar"];
             }
-            $detectionData = [
-                'food_name' => $foodName,
-                'ingredients' => $ingredients,
-            ];
+
+            // Tahap 3: Jika masih kosong, gunakan userNotes langsung
+            if (empty($detectionData) || empty($detectionData['food_name'])) {
+                if (!empty($userNotes)) {
+                    $foodName = ucwords(trim($userNotes));
+                    $ingredients = array_map('trim', explode(',', $userNotes));
+                    // Jika hanya satu item, gunakan TkpiDictionary untuk dapat bahan-bahan umum
+                    if (count($ingredients) === 1) {
+                        $dictData = \App\Helpers\TkpiDictionary::lookup($foodName);
+                        $ingredients = [$foodName, 'Bumbu Rempah', 'Minyak Goreng', 'Garam'];
+                    }
+                } else {
+                    $foodName = "Nasi Campur";
+                    $ingredients = ["Nasi Putih", "Lauk Protein", "Sayuran", "Sambal"];
+                }
+                $detectionData = [
+                    'food_name'   => $foodName ?? ucwords(trim($userNotes)),
+                    'ingredients' => $ingredients,
+                ];
+            }
         }
 
         $foodName = $detectionData['food_name'];
         $ingredients = $detectionData['ingredients'] ?? [$foodName];
-
         $ingredientsString = implode(', ', $ingredients);
 
-        $weightPrompt = "Berdasarkan gambar makanan ini dan bahan-bahan yang teridentifikasi: [{$ingredientsString}], 
-        estimasi berat masing-masing bahan dalam gram untuk satu porsi. Catatan pengguna: \"{$userNotes}\".
-        Return ONLY a JSON object mapping ingredient to weight in grams.
-        Example: {\"Nasi Putih\": 150, \"Ayam Goreng\": 80}";
+        // Estimasi berat: Gemini dulu, DeepSeek auto-switch jika limit
+        $weightPrompt = "Makanan: {$foodName}. Bahan-bahan: [{$ingredientsString}]. Catatan: \"{$userNotes}\".
+        Estimasi berat masing-masing bahan dalam gram untuk SATU PORSI standar Indonesia.
+        Return ONLY a JSON object mapping ingredient name to weight in grams.
+        Example: {\"Nasi Putih\": 150, \"Ayam Goreng\": 80, \"Minyak Goreng\": 10}";
 
         $weightText = \App\Helpers\GeminiHelper::generateContent($weightPrompt, $base64Image, $mimeType, 10);
+        if (!$weightText) {
+            // DeepSeek auto-switch untuk estimasi berat
+            $weightText = \App\Helpers\DeepSeekHelper::generateContent($weightPrompt);
+        }
         $weights = $weightText ? (json_decode($weightText, true) ?? []) : [];
 
         $totalCalories = 0;

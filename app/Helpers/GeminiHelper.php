@@ -9,7 +9,8 @@ class GeminiHelper
 {
     /**
      * Call Gemini API with automatic model fallback to avoid HTTP 429 Quota Exceeded errors.
-     * Models tried in order: gemini-2.0-flash -> gemini-1.5-flash -> gemini-2.5-flash
+     * Models tried in order: gemini-2.0-flash-lite -> gemini-2.5-flash-lite -> gemini-2.0-flash -> gemini-2.5-flash
+     * (lite models have higher free-tier quotas and no 404 issues)
      */
     public static function generateContent($prompt, $inlineData = null, $mimeType = null, $timeout = 15)
     {
@@ -19,10 +20,12 @@ class GeminiHelper
             return null;
         }
 
+        // Updated model list: gemini-1.5-flash removed (404 on v1beta), lite models added first
         $models = [
-            'gemini-2.0-flash',
-            'gemini-1.5-flash',
-            'gemini-2.5-flash',
+            'gemini-2.0-flash-lite',   // Highest free-tier quota, fast
+            'gemini-2.5-flash-lite',   // High quota, latest lite
+            'gemini-2.0-flash',        // Standard model
+            'gemini-2.5-flash',        // Fallback
         ];
 
         $parts = [
@@ -66,17 +69,22 @@ class GeminiHelper
                     $body = $response->body();
                     Log::warning("[GEMINI-HELPER] Model {$model} returned {$status}: {$body}");
 
-                    // If quota exceeded (429) or model unavailable, try next model in list
-                    if ($status == 429 || str_contains($body, 'RESOURCE_EXHAUSTED')) {
-                        Log::info("[GEMINI-HELPER] Quota exceeded for {$model}. Falling back to next model...");
+                    // If quota exceeded (429) or model not found (404), try next model
+                    if ($status === 429 || $status === 404 || str_contains($body, 'RESOURCE_EXHAUSTED') || str_contains($body, 'NOT_FOUND')) {
+                        Log::info("[GEMINI-HELPER] Skipping {$model} (status {$status}). Falling back to next model...");
                         continue;
                     }
+
+                    // For other errors, also continue to next model
+                    continue;
                 }
             } catch (\Exception $e) {
                 Log::warning("[GEMINI-HELPER] Exception with {$model}: " . $e->getMessage());
+                continue;
             }
         }
 
+        Log::warning("[GEMINI-HELPER] All Gemini models exhausted. Returning null.");
         return null;
     }
 }
