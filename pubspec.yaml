@@ -108,6 +108,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
+  image_path: "assets/images/SiNutri_app_logo.jpeg"
   min_sdk_android: 21
 
