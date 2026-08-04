@@ -8,11 +8,24 @@ import '../models/history_state.dart';
 import '../../../routes/app_routes.dart';
 import '../../main/views/main_wrapper_screen.dart';
 
-class HistoryView extends ConsumerWidget {
+class HistoryView extends ConsumerStatefulWidget {
   const HistoryView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryView> createState() => _HistoryViewState();
+}
+
+class _HistoryViewState extends ConsumerState<HistoryView> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(historyProvider.notifier).fetchHistory();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(historyProvider);
     final notifier = ref.read(historyProvider.notifier);
 
@@ -120,7 +133,7 @@ class HistoryView extends ConsumerWidget {
                         const SizedBox(height: 32),
                         const Text('Daftar Konsumsi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
-                        ...state.meals.map((meal) => _buildMealCard(context, ref, meal, state)),
+                        ...state.meals.map((meal) => _buildMealCard(context, meal, state)),
                         const SizedBox(height: 100),
                       ],
                     ),
@@ -218,7 +231,7 @@ class HistoryView extends ConsumerWidget {
     );
   }
 
-  Widget _buildMealCard(BuildContext context, WidgetRef ref, DailyMealItem meal, HistoryState state) {
+  Widget _buildMealCard(BuildContext context, DailyMealItem meal, HistoryState state) {
     return Dismissible(
       key: Key(meal.id),
       direction: DismissDirection.endToStart,
