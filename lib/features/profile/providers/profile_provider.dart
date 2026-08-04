@@ -73,13 +73,25 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         final allergies = userProfile != null ? List<String>.from(userProfile['food_allergies'] ?? userProfile['allergies'] ?? []) : <String>[];
         final birthDateStr = userProfile != null ? (userProfile['birth_date'] ?? userProfile['dob']) : null;
 
+        final diabetesStatus = userProfile?['diabetes_status'] ?? '';
+        String statusText = 'Profil Personal';
+        if (diabetesStatus == 'dm_type_1') {
+          statusText = 'Diabetes Melitus Tipe 1';
+        } else if (diabetesStatus == 'dm_type_2') {
+          statusText = 'Diabetes Melitus Tipe 2';
+        } else if (diabetesStatus == 'prediabetes') {
+          statusText = 'Prediabetes';
+        } else if (diabetesStatus == 'not_diagnosed') {
+          statusText = 'Belum Didiagnosis DM';
+        }
+
         state = state.copyWith(
           motherId: userProfile != null ? (userProfile['id']?.toString() ?? data['id']?.toString() ?? '') : (data['id']?.toString() ?? ''),
           motherName: data['name'] ?? userProfile?['name'] ?? 'Pengguna SINUTRI',
           email: data['email'] ?? '',
-          pregnancyStatusText: 'Profil Personal',
+          pregnancyStatusText: statusText,
           motherBirthDate: birthDateStr != null ? DateTime.tryParse(birthDateStr.toString()) : null,
-          motherStatus: userProfile?['diabetes_status'] ?? '',
+          motherStatus: diabetesStatus,
           motherAllergies: allergies,
           children: children,
           isLoading: false,
@@ -104,21 +116,20 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     state = state.copyWith(isLoading: true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
+      final token = prefs.getString('auth_token') ?? prefs.getString('token') ?? '';
 
-      // Note: Backend ProfileController@updateMotherProfile might not update 'name' in User table,
-      // but we send it anyway if available or we might need another endpoint.
       final response = await http.put(
-        Uri.parse(ApiConstants.profileMother),
+        Uri.parse(ApiConstants.profile),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'status': status,
-          'birth_date': birthDate?.toIso8601String().split('T')[0],
-          'allergies': allergies,
+          if (name != null) 'name': name,
+          if (status != null) 'diabetes_status': status,
+          if (birthDate != null) 'birth_date': birthDate.toIso8601String().split('T')[0],
+          if (allergies != null) 'food_allergies': allergies,
         }),
       );
 
@@ -129,7 +140,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       state = state.copyWith(isLoading: false);
       return false;
     } catch (e) {
-      print("Error updating mother profile: $e");
+      print("Error updating profile: $e");
       state = state.copyWith(isLoading: false);
       return false;
     }

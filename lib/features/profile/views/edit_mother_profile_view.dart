@@ -28,11 +28,11 @@ class _EditMotherProfileViewState extends ConsumerState<EditMotherProfileView> {
     _selectedDate = state.motherBirthDate;
     
     // Pastikan _selectedStatus sesuai dengan salah satu value di Dropdown items
-    final validStatuses = ['PREGNANT_T1', 'PREGNANT_T2', 'PREGNANT_T3', 'BREASTFEEDING', 'NOT_PREGNANT', 'Hamil'];
+    final validStatuses = ['dm_type_1', 'dm_type_2', 'prediabetes', 'not_diagnosed'];
     if (validStatuses.contains(state.motherStatus)) {
       _selectedStatus = state.motherStatus;
     } else {
-      _selectedStatus = 'Hamil'; // Fallback
+      _selectedStatus = 'not_diagnosed'; // Fallback
     }
     
     _allergies = List.from(state.motherAllergies);
@@ -179,7 +179,7 @@ class _EditMotherProfileViewState extends ConsumerState<EditMotherProfileView> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('Status Saat Ini', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              const Text('Status Diabetes', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedStatus,
@@ -192,12 +192,10 @@ class _EditMotherProfileViewState extends ConsumerState<EditMotherProfileView> {
                   ),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'Hamil', child: Text('Hamil')),
-                  DropdownMenuItem(value: 'PREGNANT_T1', child: Text('Hamil (Trimester 1)')),
-                  DropdownMenuItem(value: 'PREGNANT_T2', child: Text('Hamil (Trimester 2)')),
-                  DropdownMenuItem(value: 'PREGNANT_T3', child: Text('Hamil (Trimester 3)')),
-                  DropdownMenuItem(value: 'BREASTFEEDING', child: Text('Sedang Menyusui')),
-                  DropdownMenuItem(value: 'NOT_PREGNANT', child: Text('Tidak Hamil')),
+                  DropdownMenuItem(value: 'dm_type_1', child: Text('Diabetes Mellitus Tipe 1')),
+                  DropdownMenuItem(value: 'dm_type_2', child: Text('Diabetes Mellitus Tipe 2')),
+                  DropdownMenuItem(value: 'prediabetes', child: Text('Prediabetes')),
+                  DropdownMenuItem(value: 'not_diagnosed', child: Text('Belum Didiagnosis DM')),
                 ],
                 onChanged: (value) {
                   setState(() {
