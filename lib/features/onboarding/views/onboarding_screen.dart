@@ -92,13 +92,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   OnboardingSlide(
                     imagePath: 'assets/images/onboarding_2.png',
-                    title: 'Analisis untuk Kamu, Bukan Semua Orang',
-                    description: 'AI mencocokkan gizi makanan dengan kebutuhan spesifik ibu hamil, menyusui, atau balitamu.',
+                    title: 'Analisis Nutrisi Personal',
+                    description: 'AI mencocokkan gizi makanan dengan kebutuhan diet diabetes dan tujuan kesehatanmu.',
                   ),
                   OnboardingSlide(
                     imagePath: 'assets/images/onboarding_3.png',
-                    title: 'Pantau Ibu & Anak Sekaligus',
-                    description: 'Satu akun untuk kamu dan semua anakmu. Grafik gizi dan tumbuh kembang dalam genggaman.',
+                    title: 'Pantau Progress Nutrisimu',
+                    description: 'Catat asupan harianmu. Grafik gizi dan laporan mingguan dalam satu aplikasi.',
                   ),
                 ],
               ),

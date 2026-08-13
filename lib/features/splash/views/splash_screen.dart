@@ -150,7 +150,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Text(
-                        'Aplikasi Nutrisi Digital Personal Anda',
+                        'Manajemen Diet Diabetes & Journaling Nutrisi',
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(
                           fontSize: 14,

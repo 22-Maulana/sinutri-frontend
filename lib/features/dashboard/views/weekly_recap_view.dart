@@ -194,25 +194,12 @@ class WeeklyRecapView extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.auto_awesome, color: Colors.white, size: 14),
-                    SizedBox(width: 6),
-                    Text('Analisis DeepSeek AI', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text('Evaluasi Nutrisi Mingguan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
+              Icon(Icons.auto_awesome, color: AppColors.primary, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Evaluasi Nutrisi Mingguan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
               ),
             ],
           ),
