@@ -225,9 +225,10 @@ class _ChatbotViewState extends ConsumerState<ChatbotView> {
 
   Widget _buildSuggestionChips() {
     final suggestions = [
-      'Apa itu Diabetes?',
+      'Berapa total kalori saya hari ini?',
+      'Apa saja yang sudah saya makan?',
+      'Apakah asupan saya sudah cukup?',
       'Indeks glikemik nasi putih?',
-      'Pangan lokal rendah GI?',
     ];
     return SizedBox(
       height: 36,
