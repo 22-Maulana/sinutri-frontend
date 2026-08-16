@@ -27,22 +27,26 @@ class ProfileRecapData {
 class WeeklyRecapState {
   final List<ProfileRecapData> recaps;
   final String aiWeeklyTips;
+  final String akgAdvice;
   final bool isLoading;
 
   WeeklyRecapState({
     required this.recaps,
     this.aiWeeklyTips = '',
+    this.akgAdvice = '',
     this.isLoading = false,
   });
 
   WeeklyRecapState copyWith({
     List<ProfileRecapData>? recaps,
     String? aiWeeklyTips,
+    String? akgAdvice,
     bool? isLoading,
   }) {
     return WeeklyRecapState(
       recaps: recaps ?? this.recaps,
       aiWeeklyTips: aiWeeklyTips ?? this.aiWeeklyTips,
+      akgAdvice: akgAdvice ?? this.akgAdvice,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -87,6 +91,7 @@ class WeeklyRecapNotifier extends StateNotifier<WeeklyRecapState> {
 
       // Fetch DeepSeek AI Weekly Tips from API
       String tips = '';
+      String akgAdviceStr = '';
       try {
         final weeklyUri = Uri.parse('${ApiConstants.dashboardWeekly}?end_date=$endDate');
         final weeklyRes = await http.get(weeklyUri, headers: {
@@ -96,14 +101,19 @@ class WeeklyRecapNotifier extends StateNotifier<WeeklyRecapState> {
         if (weeklyRes.statusCode == 200) {
           final wJson = jsonDecode(weeklyRes.body);
           tips = wJson['ai_weekly_tips'] ?? '';
+          akgAdviceStr = wJson['akg_advice'] ?? '';
         }
       } catch (_) {}
 
       if (tips.isEmpty) {
         tips = "Tips DeepSeek AI: Evaluasi 7 hari menunjukkan pola nutrisi Anda berjalan baik. Tingkatkan asupan serat dari sayur hijau dan pertahankan konsumsi pangan lokal rendah Indeks Glikemik.";
       }
+      
+      if (akgAdviceStr.isEmpty) {
+        akgAdviceStr = "AKG Mingguan: Tingkat pemenuhan AKG Anda cukup seimbang. Terus jaga asupan kalori dan protein harian.";
+      }
 
-      state = state.copyWith(recaps: newRecaps, aiWeeklyTips: tips, isLoading: false);
+      state = state.copyWith(recaps: newRecaps, aiWeeklyTips: tips, akgAdvice: akgAdviceStr, isLoading: false);
     } catch (e) {
       print("Error fetching weekly recaps: $e");
       state = state.copyWith(isLoading: false);

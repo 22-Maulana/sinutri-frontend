@@ -99,6 +99,37 @@ class _HistoryDetailViewState extends ConsumerState<HistoryDetailView> {
                   Text(widget.meal.time, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 ],
               ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (widget.meal.exactIgScore > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getIgColor(widget.meal.exactIgCategory).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'IG: ${widget.meal.exactIgScore.toStringAsFixed(0)} (${widget.meal.exactIgCategory})',
+                        style: TextStyle(fontSize: 11, color: _getIgColor(widget.meal.exactIgCategory), fontWeight: FontWeight.bold)
+                      ),
+                    ),
+                  if (widget.meal.akgPercentageCalories > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Memenuhi ${widget.meal.akgPercentageCalories.toStringAsFixed(1)}% Kalori',
+                        style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold)
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ),
@@ -146,6 +177,15 @@ class _HistoryDetailViewState extends ConsumerState<HistoryDetailView> {
         ],
       ),
     );
+  }
+
+  Color _getIgColor(String category) {
+    switch (category.toUpperCase()) {
+      case 'RENDAH': return Colors.green;
+      case 'SEDANG': return Colors.orange;
+      case 'TINGGI': return Colors.red;
+      default: return Colors.purple;
+    }
   }
 
   Widget _buildMacrosGrid() {

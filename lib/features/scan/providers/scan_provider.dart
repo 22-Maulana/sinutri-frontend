@@ -145,6 +145,10 @@ class ScanNotifier extends StateNotifier<ScanRequestModel> {
       carbsAkg: ((carbsVal / targetCarbs) * 100).round(),
       fat: fatVal,
       fatAkg: ((fatVal / targetFat) * 100).round(),
+      akgPercentageCalories: double.tryParse(data['akg_percentage_calories']?.toString() ?? '0') ?? 0.0,
+      akgPercentageProtein: double.tryParse(data['akg_percentage_protein']?.toString() ?? '0') ?? 0.0,
+      exactIgScore: double.tryParse(data['exact_ig_score']?.toString() ?? '0') ?? 0.0,
+      exactIgCategory: data['exact_ig_category']?.toString() ?? 'RENDAH',
       micronutrients: {
         'Serat': fiberVal,
         'Gula': sugarVal,

@@ -164,16 +164,34 @@ class _ScanResultViewState extends ConsumerState<ScanResultView> {
                       ),
                       child: Text(widget.result.portionDesc, style: const TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w600)),
                     ),
-                    if (widget.result.glycemicIndex > 0) ...[
+                    if (widget.result.exactIgScore > 0) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.1),
+                          color: _getIgColor(widget.result.exactIgCategory).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text('GI: ${widget.result.glycemicIndex.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, color: Colors.purple, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'IG: ${widget.result.exactIgScore.toStringAsFixed(0)} (${widget.result.exactIgCategory})', 
+                          style: TextStyle(
+                            fontSize: 11, 
+                            color: _getIgColor(widget.result.exactIgCategory), 
+                            fontWeight: FontWeight.bold
+                          )
+                        ),
                       ),
                     ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Memenuhi ${widget.result.akgPercentageCalories.toStringAsFixed(1)}% Kalori', 
+                        style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold)
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -182,6 +200,15 @@ class _ScanResultViewState extends ConsumerState<ScanResultView> {
         ],
       ),
     );
+  }
+
+  Color _getIgColor(String category) {
+    switch (category.toUpperCase()) {
+      case 'RENDAH': return Colors.green;
+      case 'SEDANG': return Colors.orange;
+      case 'TINGGI': return Colors.red;
+      default: return Colors.purple;
+    }
   }
 
   Widget _buildRecommendationCard() {

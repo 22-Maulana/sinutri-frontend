@@ -75,6 +75,8 @@ class WeeklyRecapView extends ConsumerWidget {
                   )),
                   
                 const SizedBox(height: 24),
+                _buildAkgAdviceCard(state.akgAdvice),
+                const SizedBox(height: 16),
                 _buildDeepSeekInfoCard(state.aiWeeklyTips),
               ],
             ),
@@ -206,6 +208,36 @@ class WeeklyRecapView extends ConsumerWidget {
           const SizedBox(height: 12),
           Text(
             tips.isNotEmpty ? tips : 'Tingkatkan asupan serat harian dari tumisan sayur hijau dan pertahankan konsumsi pangan lokal rendah Indeks Glikemik.',
+            style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAkgAdviceCard(String akgAdvice) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.monitor_weight_outlined, color: Colors.orange, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Status AKG', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            akgAdvice,
             style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.5),
           ),
         ],

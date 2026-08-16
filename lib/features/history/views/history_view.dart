@@ -350,6 +350,37 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
                         )
                       ],
                     ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        if (meal.exactIgScore > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _getIgColor(meal.exactIgCategory).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'IG: ${meal.exactIgCategory}',
+                              style: TextStyle(fontSize: 9, color: _getIgColor(meal.exactIgCategory), fontWeight: FontWeight.bold)
+                            ),
+                          ),
+                        if (meal.akgPercentageCalories > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Memenuhi ${meal.akgPercentageCalories.toStringAsFixed(1)}% Kalori',
+                              style: const TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)
+                            ),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -425,5 +456,14 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
         ),
       ],
     );
+  }
+
+  Color _getIgColor(String category) {
+    switch (category.toUpperCase()) {
+      case 'RENDAH': return Colors.green;
+      case 'SEDANG': return Colors.orange;
+      case 'TINGGI': return Colors.red;
+      default: return Colors.purple;
+    }
   }
 }

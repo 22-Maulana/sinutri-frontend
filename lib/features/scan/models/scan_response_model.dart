@@ -22,6 +22,11 @@ class ScanResponseModel {
   final double fat;
   final int fatAkg;
 
+  final double akgPercentageCalories;
+  final double akgPercentageProtein;
+  final double exactIgScore;
+  final String exactIgCategory;
+
   final Map<String, double> micronutrients;
 
   ScanResponseModel({
@@ -46,6 +51,10 @@ class ScanResponseModel {
     required this.carbsAkg,
     required this.fat,
     required this.fatAkg,
+    this.akgPercentageCalories = 0.0,
+    this.akgPercentageProtein = 0.0,
+    this.exactIgScore = 0.0,
+    this.exactIgCategory = 'RENDAH',
     required this.micronutrients,
   });
 }
