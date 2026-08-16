@@ -9,6 +9,7 @@ import '../../../core/services/notification_service.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../profile/models/profile_state.dart';
 import '../models/dashboard_state.dart';
+import '../../history/models/history_state.dart';
 
 final dashboardProvider = StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
   final profileState = ref.watch(profileProvider);
