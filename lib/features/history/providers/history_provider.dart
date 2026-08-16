@@ -108,11 +108,12 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
             fat: parseDouble(item['fat_g'] ?? item['fat'] ?? 0),
             carbs: parseDouble(item['carbs_g'] ?? item['carbs'] ?? 0),
             fiber: parseDouble(item['fiber_g'] ?? item['fiber'] ?? 0),
+            sugar: parseDouble(item['sugar_g'] ?? item['sugar'] ?? 0),
             reason: item['notes'] ?? '',
             akgPercentageCalories: parseDouble(item['akg_percentage_calories']),
             akgPercentageProtein: parseDouble(item['akg_percentage_protein']),
-            exactIgScore: parseDouble(item['exact_ig_score']),
-            exactIgCategory: item['exact_ig_category'] ?? 'RENDAH',
+            exactIgScore: parseDouble(item['ig_score'] ?? item['exact_ig_score']),
+            exactIgCategory: item['ig_category'] ?? item['exact_ig_category'] ?? 'RENDAH',
           );
         }).toList();
 

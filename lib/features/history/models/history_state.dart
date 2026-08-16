@@ -54,6 +54,7 @@ class DailyMealItem {
   final double fat;
   final double carbs;
   final double fiber;
+  final double sugar;
   final String reason;
   final double akgPercentageCalories;
   final double akgPercentageProtein;
@@ -70,6 +71,7 @@ class DailyMealItem {
     required this.fat,
     required this.carbs,
     this.fiber = 0.0,
+    this.sugar = 0.0,
     this.reason = '',
     this.akgPercentageCalories = 0.0,
     this.akgPercentageProtein = 0.0,

@@ -190,7 +190,7 @@ class _HistoryDetailViewState extends ConsumerState<HistoryDetailView> {
 
   Widget _buildMacrosGrid() {
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 16,
@@ -200,6 +200,7 @@ class _HistoryDetailViewState extends ConsumerState<HistoryDetailView> {
         _buildMacroBox('Protein', '${widget.meal.protein}g', AppColors.primary),
         _buildMacroBox('Karbohidrat', '${widget.meal.carbs}g', AppColors.primary),
         _buildMacroBox('Lemak', '${widget.meal.fat}g', AppColors.primary),
+        _buildMacroBox('Gula', '${widget.meal.sugar}g', Colors.orange),
         _buildMacroBox('Serat', '${widget.meal.fiber}g', AppColors.primary),
       ],
     );

@@ -457,16 +457,17 @@ class HomeView extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         context.push(AppRoutes.historyDetail, extra: {
-          'meal': DailyMealItem(
+          'meal': meal.fullMeal ?? DailyMealItem(
             id: meal.id,
             name: meal.name,
             time: meal.time,
             calories: meal.calories,
             recommendation: 'Tersimpan',
-            protein: 0.0, // We could fetch more if needed, but using available info
+            protein: 0.0, 
             fat: 0.0, 
             carbs: 0.0, 
-            fiber: 0.0, 
+            fiber: 0.0,
+            sugar: 0.0,
             reason: 'Data gizi lengkap tersedia di halaman Riwayat.',
           ),
           'date': 'Hari Ini',

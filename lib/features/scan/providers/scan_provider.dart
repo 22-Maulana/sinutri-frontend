@@ -294,8 +294,18 @@ class ScanNotifier extends StateNotifier<ScanRequestModel> {
         'protein_g': result.protein,
         'fat_g': result.fat,
         'carbs_g': result.carbs,
-        'sugar_g': 0.0,
+        'sugar_g': result.micronutrients['Gula'] ?? 0.0,
         'fiber_g': result.micronutrients['Serat'] ?? 0.0,
+        'glycemic_index': result.glycemicIndex,
+        'glycemic_score': result.glycemicScore,
+        'risk_category': result.riskCategory,
+        'exact_ig_score': result.exactIgScore,
+        'exact_ig_category': result.exactIgCategory,
+        'akg_percentage_calories': result.akgPercentageCalories,
+        'akg_percentage_protein': result.akgPercentageProtein,
+        'ai_insight': result.aiInsight,
+        'ai_recommendation': result.aiRecommendation,
+        'alternative_foods': result.alternativeFoods,
       };
 
       debugPrint("[SCAN-FE] Sending FoodLog Payload: ${jsonEncode(payload)}");

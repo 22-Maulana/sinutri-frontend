@@ -118,6 +118,23 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
             calories: parseInt(m['calories_kcal'] ?? m['calories']),
             imagePath: m['photo_url'] ?? 'assets/images/placeholder.png',
             isSaved: true,
+            fullMeal: DailyMealItem(
+              id: m['id'].toString(),
+              name: m['food_name_detected'] ?? 'Makanan',
+              time: DateFormat('HH:mm').format(time) + ' WIB',
+              calories: parseInt(m['calories_kcal'] ?? m['calories']),
+              recommendation: m['recommendation_status'] ?? 'PERHATIAN',
+              protein: parseDouble(m['protein_g'] ?? m['protein']),
+              fat: parseDouble(m['fat_g'] ?? m['fat']),
+              carbs: parseDouble(m['carbs_g'] ?? m['carbs']),
+              fiber: parseDouble(m['fiber_g'] ?? m['fiber']),
+              sugar: parseDouble(m['sugar_g'] ?? m['sugar']),
+              reason: m['notes'] ?? '',
+              akgPercentageCalories: parseDouble(m['akg_percentage_calories']),
+              akgPercentageProtein: parseDouble(m['akg_percentage_protein']),
+              exactIgScore: parseDouble(m['ig_score'] ?? m['exact_ig_score']),
+              exactIgCategory: m['ig_category'] ?? m['exact_ig_category'] ?? 'RENDAH',
+            ),
           );
         }).toList();
 

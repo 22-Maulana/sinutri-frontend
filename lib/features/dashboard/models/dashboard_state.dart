@@ -1,3 +1,5 @@
+import '../../history/models/history_state.dart';
+
 class DashboardState {
   final String userName;
   final String currentDate;
@@ -65,6 +67,7 @@ class FoodHistoryItem {
   final int calories;
   final String imagePath;
   final bool isSaved;
+  final DailyMealItem? fullMeal;
 
   FoodHistoryItem({
     required this.id,
@@ -73,5 +76,6 @@ class FoodHistoryItem {
     required this.calories,
     required this.imagePath,
     required this.isSaved,
+    this.fullMeal,
   });
 }
