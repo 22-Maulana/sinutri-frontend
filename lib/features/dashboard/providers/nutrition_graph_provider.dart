@@ -55,7 +55,7 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
     state = state.copyWith(isLoading: true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
+      final token = prefs.getString('token') ?? prefs.getString('auth_token') ?? '';
 
       String targetType = 'MOTHER';
       String targetId = _profileState.motherId;
@@ -91,19 +91,25 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
         final targets = data['daily_targets'] ?? {};
         final List<dynamic> recentMeals = data['recent_meals'] ?? [];
 
-        int parseInt(dynamic value) => value is num ? value.toInt() : (int.tryParse(value?.toString() ?? '') ?? 0);
+        int parseInt(dynamic value) {
+          if (value == null) return 0;
+          if (value is num) return value.toInt();
+          return (double.tryParse(value.toString()) ?? 0.0).toInt();
+        }
 
         int targetCal = parseInt(targets['calories'] ?? 2000);
         int targetCarbs = parseInt(targets['carbs'] ?? 250);
         int targetProtein = parseInt(targets['protein'] ?? 100);
         int targetFat = parseInt(targets['fat'] ?? 65);
         int targetFiber = parseInt(targets['fiber'] ?? 30);
+        int targetSugar = parseInt(targets['sugar'] ?? 50);
 
         final currentCal = parseInt(summary['calories'] ?? summary['current_calories']);
         final currentCarbs = parseInt(summary['carbs'] ?? summary['carbs_g']);
         final currentProtein = parseInt(summary['protein'] ?? summary['protein_g']);
         final currentFat = parseInt(summary['fat'] ?? summary['fat_g']);
         final currentFiber = parseInt(summary['fiber'] ?? summary['fiber_g']);
+        final currentSugar = parseInt(summary['sugar'] ?? summary['sugar_g']);
 
         final meals = recentMeals.map((m) {
           final time = DateTime.parse(m['meal_time']);
@@ -142,6 +148,11 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
               current: currentFiber,
               target: targetFiber,
               percentage: targetFiber > 0 ? (currentFiber / targetFiber).clamp(0.0, 1.0) : 0.0,
+            ),
+            'Gula': MacroNutrientInfo(
+              current: currentSugar,
+              target: targetSugar,
+              percentage: targetSugar > 0 ? (currentSugar / targetSugar).clamp(0.0, 1.0) : 0.0,
             ),
           },
           mealsTimeline: meals,

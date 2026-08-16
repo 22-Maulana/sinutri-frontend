@@ -260,6 +260,8 @@ class NutritionGraphView extends ConsumerWidget {
           _buildMacroRow('Lemak', state.macros['Lemak']!, Colors.orange),
           const SizedBox(height: 16),
           _buildMacroRow('Serat', state.macros['Serat']!, Colors.grey),
+          const SizedBox(height: 16),
+          _buildMacroRow('Gula', state.macros['Gula'] ?? MacroNutrientInfo(current: 0, target: 50, percentage: 0), Colors.redAccent),
         ],
       ),
     );
