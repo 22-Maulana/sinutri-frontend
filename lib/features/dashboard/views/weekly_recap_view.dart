@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../providers/nutrition_graph_provider.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../providers/weekly_recap_provider.dart';
 
@@ -206,9 +207,12 @@ class WeeklyRecapView extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            tips.isNotEmpty ? tips : 'Tingkatkan asupan serat harian dari tumisan sayur hijau dan pertahankan konsumsi pangan lokal rendah Indeks Glikemik.',
-            style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.5),
+          MarkdownBody(
+            data: tips.isNotEmpty ? tips : 'Tingkatkan asupan serat harian dari tumisan sayur hijau dan pertahankan konsumsi pangan lokal rendah Indeks Glikemik.',
+            styleSheet: MarkdownStyleSheet(
+              p: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.5),
+              tableBody: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+            ),
           ),
         ],
       ),
@@ -236,9 +240,12 @@ class WeeklyRecapView extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            akgAdvice,
-            style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.5),
+          MarkdownBody(
+            data: akgAdvice,
+            styleSheet: MarkdownStyleSheet(
+              p: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.5),
+              tableBody: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+            ),
           ),
         ],
       ),

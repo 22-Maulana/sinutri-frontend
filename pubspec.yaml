@@ -50,6 +50,7 @@ dependencies:
   pdf: ^3.10.0
   printing: ^5.11.0
   google_sign_in: ^6.1.0
+  flutter_markdown: ^0.7.4+3
 
 dev_dependencies:
   flutter_test:

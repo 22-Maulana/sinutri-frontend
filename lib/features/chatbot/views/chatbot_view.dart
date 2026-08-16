@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../models/chat_message.dart';
 import '../providers/chatbot_provider.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class ChatbotView extends ConsumerStatefulWidget {
   const ChatbotView({super.key});
@@ -207,9 +208,13 @@ class _ChatbotViewState extends ConsumerState<ChatbotView> {
                 ),
                 border: Border.all(color: AppColors.textSecondary.withOpacity(0.1)),
               ),
-              child: SelectableText(
-                message.text, 
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, height: 1.4),
+              child: MarkdownBody(
+                data: message.text,
+                styleSheet: MarkdownStyleSheet(
+                  p: const TextStyle(color: AppColors.textPrimary, fontSize: 14, height: 1.4),
+                  tableBody: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                ),
+                selectable: true,
               ),
             ),
             const SizedBox(height: 4),
