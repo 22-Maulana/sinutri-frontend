@@ -88,8 +88,17 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final summary = data['today_summary'] ?? data['summary'] ?? {};
-        final targets = data['daily_targets'] ?? {};
+        Map<String, dynamic> summary = {};
+        if (data['today_summary'] is Map) {
+          summary = Map<String, dynamic>.from(data['today_summary']);
+        } else if (data['summary'] is Map) {
+          summary = Map<String, dynamic>.from(data['summary']);
+        }
+
+        Map<String, dynamic> targets = {};
+        if (data['daily_targets'] is Map) {
+          targets = Map<String, dynamic>.from(data['daily_targets']);
+        }
         dynamic rawMeals = data['recent_meals'];
         List<dynamic> recentMealsRaw = [];
         if (rawMeals is List) {
