@@ -86,7 +86,15 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        var decoded = jsonDecode(response.body);
+        if (decoded is List && decoded.isNotEmpty) {
+          decoded = decoded[0];
+        }
+        if (decoded is! Map) {
+          throw Exception("Invalid response format");
+        }
+        final Map<String, dynamic> data = Map<String, dynamic>.from(decoded);
+        
         Map<String, dynamic> summary = {};
         if (data['today_summary'] is Map) {
           summary = Map<String, dynamic>.from(data['today_summary']);
@@ -98,6 +106,7 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
         if (data['daily_targets'] is Map) {
           targets = Map<String, dynamic>.from(data['daily_targets']);
         }
+        
         dynamic rawMeals = data['recent_meals'];
         List<dynamic> recentMeals = [];
         if (rawMeals is List) {
@@ -126,9 +135,10 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
         final currentFiber = parseInt(summary['fiber'] ?? summary['fiber_g']);
         final currentSugar = parseInt(summary['sugar'] ?? summary['sugar_g']);
 
-        final meals = recentMeals.map((m) {
-          final time = DateTime.parse(m['meal_time']);
-          final foodName = m['food_name_detected'] ?? 'Makanan';
+        final meals = recentMeals.whereType<Map>().map((m) {
+          final timeStr = m['meal_time']?.toString() ?? DateTime.now().toIso8601String();
+          final time = DateTime.tryParse(timeStr) ?? DateTime.now();
+          final foodName = m['food_name_detected']?.toString() ?? 'Makanan';
           return TimelineMealInfo(
             time: DateFormat('HH:mm').format(time),
             name: foodName,

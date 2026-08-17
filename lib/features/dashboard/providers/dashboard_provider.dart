@@ -87,7 +87,15 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        var decoded = jsonDecode(response.body);
+        if (decoded is List && decoded.isNotEmpty) {
+          decoded = decoded[0];
+        }
+        if (decoded is! Map) {
+          throw Exception("Invalid response format");
+        }
+        final Map<String, dynamic> data = Map<String, dynamic>.from(decoded);
+        
         Map<String, dynamic> summary = {};
         if (data['today_summary'] is Map) {
           summary = Map<String, dynamic>.from(data['today_summary']);
@@ -99,6 +107,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         if (data['daily_targets'] is Map) {
           targets = Map<String, dynamic>.from(data['daily_targets']);
         }
+        
         dynamic rawMeals = data['recent_meals'];
         List<dynamic> recentMealsRaw = [];
         if (rawMeals is List) {
@@ -125,17 +134,18 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         final currentSerat = parseDouble(summary['fiber'] ?? summary['fiber_g']);
         
         // Recent meals mapping
-        final meals = recentMealsRaw.reversed.take(3).map((m) {
-          final time = DateTime.parse(m['meal_time']);
+        final meals = recentMealsRaw.whereType<Map>().reversed.take(3).map((m) {
+          final timeStr = m['meal_time']?.toString() ?? DateTime.now().toIso8601String();
+          final time = DateTime.tryParse(timeStr) ?? DateTime.now();
           return FoodHistoryItem(
-            id: m['id'].toString(),
+            id: m['id']?.toString() ?? '',
             name: m['food_name_detected'] ?? 'Makanan',
             time: DateFormat('HH:mm').format(time) + ' WIB',
             calories: parseInt(m['calories_kcal'] ?? m['calories']),
             imagePath: m['photo_url'] ?? 'assets/images/placeholder.png',
             isSaved: true,
             fullMeal: DailyMealItem(
-              id: m['id'].toString(),
+              id: m['id']?.toString() ?? '',
               name: m['food_name_detected'] ?? 'Makanan',
               time: DateFormat('HH:mm').format(time) + ' WIB',
               calories: parseInt(m['calories_kcal'] ?? m['calories']),
