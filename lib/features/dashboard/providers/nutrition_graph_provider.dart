@@ -10,7 +10,7 @@ import '../../profile/providers/profile_provider.dart';
 import '../../profile/models/profile_state.dart';
 import '../models/nutrition_graph_state.dart';
 
-final nutritionGraphProvider = StateNotifierProvider<NutritionGraphNotifier, NutritionGraphState>((ref) {
+final nutritionGraphProvider = StateNotifierProvider.autoDispose<NutritionGraphNotifier, NutritionGraphState>((ref) {
   final profileState = ref.watch(profileProvider);
   return NutritionGraphNotifier(ref, profileState);
 });

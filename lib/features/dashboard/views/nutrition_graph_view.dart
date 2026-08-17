@@ -33,27 +33,33 @@ class NutritionGraphView extends ConsumerWidget {
       ),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildProfileSelector(state, notifier, ref),
-                _buildTabs(state, notifier),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Column(
-                    children: [
-                      _buildDateSelector(state),
-                      const SizedBox(height: 16),
-                      _buildCaloryCard(state),
-                      const SizedBox(height: 24),
-                      _buildNutritionCard(state),
-                      const SizedBox(height: 24),
-                      _buildTimelineCard(state),
-                      const SizedBox(height: 48), // Padding
-                    ],
+          RefreshIndicator(
+            onRefresh: () async {
+              await notifier.fetchSummary();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildProfileSelector(state, notifier, ref),
+                  _buildTabs(state, notifier),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: Column(
+                      children: [
+                        _buildDateSelector(state),
+                        const SizedBox(height: 16),
+                        _buildCaloryCard(state),
+                        const SizedBox(height: 24),
+                        _buildNutritionCard(state),
+                        const SizedBox(height: 24),
+                        _buildTimelineCard(state),
+                        const SizedBox(height: 48), // Padding
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           if (state.isLoading)
