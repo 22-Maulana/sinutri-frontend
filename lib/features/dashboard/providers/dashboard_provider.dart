@@ -90,7 +90,13 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         final data = jsonDecode(response.body);
         final summary = data['today_summary'] ?? data['summary'] ?? {};
         final targets = data['daily_targets'] ?? {};
-        final List<dynamic> recentMealsRaw = data['recent_meals'] ?? [];
+        dynamic rawMeals = data['recent_meals'];
+        List<dynamic> recentMealsRaw = [];
+        if (rawMeals is List) {
+          recentMealsRaw = rawMeals;
+        } else if (rawMeals is Map) {
+          recentMealsRaw = rawMeals.values.toList();
+        }
 
         // Safe parsing helpers
         int parseInt(dynamic value) => value is num ? value.toInt() : (int.tryParse(value?.toString() ?? '') ?? 0);

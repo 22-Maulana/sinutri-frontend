@@ -89,7 +89,13 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
         final data = jsonDecode(response.body);
         final summary = data['today_summary'] ?? data['summary'] ?? {};
         final targets = data['daily_targets'] ?? {};
-        final List<dynamic> recentMeals = data['recent_meals'] ?? [];
+        dynamic rawMeals = data['recent_meals'];
+        List<dynamic> recentMeals = [];
+        if (rawMeals is List) {
+          recentMeals = rawMeals;
+        } else if (rawMeals is Map) {
+          recentMeals = rawMeals.values.toList();
+        }
 
         int parseInt(dynamic value) {
           if (value == null) return 0;
