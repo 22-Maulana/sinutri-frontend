@@ -47,6 +47,16 @@ class NutritionGraphView extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     child: Column(
                       children: [
+                        if (state.errorMessage != null)
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            color: Colors.red.withOpacity(0.1),
+                            child: Text(
+                              state.errorMessage!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
                         _buildDateSelector(state),
                         const SizedBox(height: 16),
                         _buildCaloryCard(state),

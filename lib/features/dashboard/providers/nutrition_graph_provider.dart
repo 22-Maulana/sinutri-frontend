@@ -22,7 +22,7 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
   NutritionGraphNotifier(this._ref, this._profileState) : super(_initialState()) {
     // Initialize with first profile name if available
     if (_profileState.motherName != 'Loading...') {
-      _initializeFirstProfile();
+      Future.microtask(() => _initializeFirstProfile());
     }
   }
 
@@ -159,11 +159,11 @@ class NutritionGraphNotifier extends StateNotifier<NutritionGraphState> {
           isLoading: false,
         );
       } else {
-        state = state.copyWith(isLoading: false);
+        state = state.copyWith(isLoading: false, errorMessage: "HTTP Error: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching summary: $e");
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, errorMessage: "Error: $e");
     }
   }
 

@@ -13,6 +13,7 @@ class NutritionGraphState {
   final Map<String, MacroNutrientInfo> macros;
   final List<TimelineMealInfo> mealsTimeline;
   final bool isLoading;
+  final String? errorMessage;
 
   NutritionGraphState({
     required this.activeProfileName,
@@ -25,6 +26,7 @@ class NutritionGraphState {
     required this.macros,
     required this.mealsTimeline,
     this.isLoading = false,
+    this.errorMessage,
   });
 
   NutritionGraphState copyWith({
@@ -38,6 +40,7 @@ class NutritionGraphState {
     Map<String, MacroNutrientInfo>? macros,
     List<TimelineMealInfo>? mealsTimeline,
     bool? isLoading,
+    String? errorMessage,
   }) {
     return NutritionGraphState(
       activeProfileName: activeProfileName ?? this.activeProfileName,
@@ -50,6 +53,7 @@ class NutritionGraphState {
       macros: macros ?? this.macros,
       mealsTimeline: mealsTimeline ?? this.mealsTimeline,
       isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 }
