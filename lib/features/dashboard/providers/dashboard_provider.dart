@@ -134,7 +134,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         final currentSerat = parseDouble(summary['fiber'] ?? summary['fiber_g']);
         
         // Recent meals mapping
-        final meals = recentMealsRaw.whereType<Map>().reversed.take(3).map((m) {
+        final meals = recentMealsRaw.whereType<Map>().toList().reversed.take(3).map((m) {
           final timeStr = m['meal_time']?.toString() ?? DateTime.now().toIso8601String();
           final time = DateTime.tryParse(timeStr) ?? DateTime.now();
           return FoodHistoryItem(
